@@ -1,0 +1,2 @@
+-- Schema is managed via GORM AutoMigrate in this project.
+-- This file exists for documentation and future migration tool adoption.

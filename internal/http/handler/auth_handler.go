@@ -1,0 +1,102 @@
+package handler
+
+import (
+	"net/http"
+	"strings"
+	"time"
+
+	"go-oauth-rbac-service/internal/http/middleware"
+	"go-oauth-rbac-service/internal/http/response"
+	"go-oauth-rbac-service/internal/security"
+	"go-oauth-rbac-service/internal/service"
+)
+
+type AuthHandler struct {
+	authSvc    *service.AuthService
+	cookieMgr  *security.CookieManager
+	stateKey   string
+	refreshTTL time.Duration
+}
+
+func NewAuthHandler(authSvc *service.AuthService, cookieMgr *security.CookieManager, stateKey string, refreshTTL time.Duration) *AuthHandler {
+	return &AuthHandler{authSvc: authSvc, cookieMgr: cookieMgr, stateKey: stateKey, refreshTTL: refreshTTL}
+}
+
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	state, err := security.NewRandomString(24)
+	if err != nil {
+		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to generate oauth state", nil)
+		return
+	}
+	signed := security.SignState(state, h.stateKey)
+	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: signed, Path: "/api/v1/auth/google", HttpOnly: true, Secure: h.cookieMgr.Secure, SameSite: h.cookieMgr.SameSite, Domain: h.cookieMgr.Domain, MaxAge: 300})
+	http.Redirect(w, r, h.authSvc.GoogleLoginURL(state), http.StatusFound)
+}
+
+func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
+	queryState := r.URL.Query().Get("state")
+	code := r.URL.Query().Get("code")
+	if queryState == "" || code == "" {
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "missing state or code", nil)
+		return
+	}
+	stateCookie := security.GetCookie(r, "oauth_state")
+	state, ok := security.VerifySignedState(stateCookie, h.stateKey)
+	if !ok || state != queryState {
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid oauth state", nil)
+		return
+	}
+	// Invalidate one-time state immediately after successful verification.
+	http.SetCookie(w, &http.Cookie{Name: "oauth_state", Value: "", Path: "/api/v1/auth/google", MaxAge: -1, HttpOnly: true, Secure: h.cookieMgr.Secure, SameSite: h.cookieMgr.SameSite, Domain: h.cookieMgr.Domain})
+
+	result, err := h.authSvc.LoginWithGoogleCode(code, r.UserAgent(), clientIP(r))
+	if err != nil {
+		response.Error(w, r, http.StatusUnauthorized, "OAUTH_FAILED", err.Error(), nil)
+		return
+	}
+	h.cookieMgr.SetTokenCookies(w, result.AccessToken, result.RefreshToken, result.CSRFToken, h.refreshTTL)
+	response.JSON(w, r, http.StatusOK, map[string]any{"user": result.User, "csrf_token": result.CSRFToken, "expires_at": result.ExpiresAt})
+}
+
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	refresh := security.GetCookie(r, "refresh_token")
+	if refresh == "" {
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing refresh token", nil)
+		return
+	}
+	result, err := h.authSvc.Refresh(refresh, r.UserAgent(), clientIP(r))
+	if err != nil {
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid refresh token", nil)
+		return
+	}
+	h.cookieMgr.SetTokenCookies(w, result.AccessToken, result.RefreshToken, result.CSRFToken, h.refreshTTL)
+	response.JSON(w, r, http.StatusOK, map[string]any{"user": result.User, "csrf_token": result.CSRFToken, "expires_at": result.ExpiresAt})
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing auth context", nil)
+		return
+	}
+	uid, err := h.authSvc.ParseUserID(claims.Subject)
+	if err != nil {
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid subject", nil)
+		return
+	}
+	if err := h.authSvc.Logout(uid); err != nil {
+		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "logout failed", nil)
+		return
+	}
+	h.cookieMgr.ClearTokenCookies(w)
+	response.JSON(w, r, http.StatusOK, map[string]string{"status": "logged_out"})
+}
+
+func clientIP(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	return r.RemoteAddr
+}

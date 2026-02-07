@@ -1,0 +1,31 @@
+version: '3'
+
+tasks:
+  run:
+    cmds:
+      - go run ./cmd/api
+
+  migrate:
+    cmds:
+      - go run ./cmd/api migrate
+
+  test:
+    cmds:
+      - go test ./...
+
+  lint:
+    cmds:
+      - go vet ./...
+
+  docker-up:
+    cmds:
+      - docker compose up --build -d
+
+  docker-down:
+    cmds:
+      - docker compose down -v
+
+  openapi-validate:
+    cmds:
+      - test -f api/openapi.yaml
+      - echo "OpenAPI file exists at api/openapi.yaml"

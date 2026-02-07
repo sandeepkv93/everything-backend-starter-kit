@@ -1,0 +1,74 @@
+package middleware
+
+import (
+	"net/http"
+	"strings"
+
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+)
+
+func RequestID(next http.Handler) http.Handler { return chimiddleware.RequestID(next) }
+
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+		if r.TLS != nil {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
+	allowed := map[string]struct{}{}
+	for _, o := range allowedOrigins {
+		allowed[o] = struct{}{}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+			if origin != "" {
+				if _, ok := allowed[origin]; ok {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Vary", "Origin")
+				}
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+			}
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func BodyLimit(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func CSRFMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method := strings.ToUpper(r.Method)
+		if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+		cookie, err := r.Cookie("csrf_token")
+		if err != nil || cookie.Value == "" || r.Header.Get("X-CSRF-Token") != cookie.Value {
+			http.Error(w, "invalid csrf token", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
