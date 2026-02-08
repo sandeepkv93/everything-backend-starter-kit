@@ -20,6 +20,11 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
+      - name: Verify wire generation
+        run: |
+          go install github.com/google/wire/cmd/wire@v0.7.0
+          wire ./internal/di
+          git diff --exit-code internal/di/wire_gen.go
       - name: Vet
         run: go vet ./...
       - name: Test

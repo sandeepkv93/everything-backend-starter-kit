@@ -13,11 +13,19 @@ REST API service in Go with Google OAuth login, JWT auth, secure cookie sessions
 2. Fill Google OAuth credentials in `.env`.
 3. Ensure Google OAuth redirect URL is: `http://localhost:8080/api/v1/auth/google/callback`
 
+## Dependency Injection
+- Composition uses Google Wire in `internal/di`.
+- Regenerate injectors:
+  - `task wire`
+- Verify generated graph is up to date:
+  - `task wire-check`
+
 ## Run
 - `task migrate`
 - `task run`
 
 ## Test and Checks
+- `task wire-check`
 - `task test`
 - `task lint`
 

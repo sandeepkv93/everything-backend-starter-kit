@@ -9,6 +9,15 @@ tasks:
     cmds:
       - go run ./cmd/api migrate
 
+  wire:
+    cmds:
+      - go run -mod=mod github.com/google/wire/cmd/wire ./internal/di
+
+  wire-check:
+    cmds:
+      - task wire
+      - git diff --exit-code internal/di/wire_gen.go
+
   test:
     cmds:
       - go test ./...
