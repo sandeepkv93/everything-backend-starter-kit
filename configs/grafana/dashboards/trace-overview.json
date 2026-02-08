@@ -7,23 +7,96 @@
   "links": [],
   "panels": [
     {
-      "datasource": {"type": "tempo", "uid": "tempo"},
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "id": 1,
       "options": {
-        "content": "Use Explore with the Tempo datasource and query by trace_id from logs.\\n\\nThis starter dashboard provides a trace-focused entrypoint.",
-        "mode": "markdown"
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
       },
-      "title": "Trace Usage",
-      "type": "text"
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=\"go-oauth-rbac-service\"} |= \"trace_id=\" [5m]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Trace-Correlated Log Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket{job=\"go-oauth-rbac-service\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Request p95 (Exemplar-enabled)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 8},
+      "id": 3,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {
+          "expr": "sum by (event) (rate({service_name=\"go-oauth-rbac-service\"} |= \"trace_id=\" | json | event!=\"\" [5m]))",
+          "legendFormat": "{{event}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Trace-Correlated Events by Type",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 17},
+      "id": 4,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"go-oauth-rbac-service\"} |= \"trace_id=\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Trace-Correlated Logs",
+      "type": "logs"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["otel", "traces"],
+  "tags": ["otel", "traces", "correlation"],
   "templating": {"list": []},
   "time": {"from": "now-1h", "to": "now"},
   "title": "Trace Overview",
   "uid": "trace-overview",
-  "version": 1
+  "version": 2
 }

@@ -16,6 +16,13 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.145.0
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    depends_on:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      mimir:
+        condition: service_healthy
     volumes:
       - ./configs/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:
@@ -23,6 +30,11 @@ services:
       - "4318:4318"
       - "8889:8889"
       - "13133:13133"
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   tempo:
     image: grafana/tempo:2.5.0
@@ -31,6 +43,11 @@ services:
       - ./configs/tempo.yaml:/etc/tempo.yaml:ro
     ports:
       - "3200:3200"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
   loki:
     image: grafana/loki:3.0.0
@@ -39,6 +56,11 @@ services:
       - ./configs/loki.yaml:/etc/loki/local-config.yaml:ro
     ports:
       - "3100:3100"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
 
   mimir:
     image: grafana/mimir:2.13.0
@@ -47,6 +69,11 @@ services:
       - ./configs/mimir.yaml:/etc/mimir.yaml:ro
     ports:
       - "9009:9009"
+    healthcheck:
+      test: ["CMD", "/bin/mimir", "-version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   grafana:
     image: grafana/grafana:10.4.5
@@ -57,9 +84,12 @@ services:
       - ./configs/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./configs/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
-      - loki
-      - tempo
-      - mimir
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+      mimir:
+        condition: service_healthy
     ports:
       - "3000:3000"
 
@@ -69,7 +99,7 @@ services:
       db:
         condition: service_healthy
       otel-collector:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - .env
     environment:
