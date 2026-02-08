@@ -8,17 +8,21 @@ import (
 	"syscall"
 	"time"
 
-	"go-oauth-rbac-service/internal/app"
+	"go-oauth-rbac-service/internal/di"
 )
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
-		if err := app.RunMigrationOnly(); err != nil {
+		runner, err := di.InitializeMigrationRunner()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := runner.Run(); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
-	a, err := app.New()
+	a, err := di.InitializeApp()
 	if err != nil {
 		log.Fatal(err)
 	}
