@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "pre-commit: go is required"
+  exit 1
+fi
+
+staged_go_files="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.go$' || true)"
+if [[ -n "${staged_go_files}" ]]; then
+  echo "pre-commit: formatting staged Go files"
+  # shellcheck disable=SC2086
+  gofmt -w ${staged_go_files}
+  # shellcheck disable=SC2086
+  git add ${staged_go_files}
+fi
+
+echo "pre-commit: syncing module files"
+go mod tidy
+git add go.mod go.sum

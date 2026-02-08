@@ -40,10 +40,18 @@ REST API service in Go with Google OAuth login, JWT auth, secure cookie sessions
 
 ## Test and Checks
 - `task ci` (recommended full local gate)
+- `task tidy-check`
 - `task wire-check`
 - `task test`
 - `task lint`
 - `task obs-validate` (generates traffic and verifies metric exemplar -> Tempo trace -> Loki log correlation)
+
+## Git Hooks
+- Install repository-managed hooks:
+  - `task hooks-install`
+- Hooks provided:
+  - `pre-commit`: gofmt staged `.go` files and `go mod tidy` (stages `go.mod`/`go.sum`)
+  - `pre-push`: runs `task ci`
 
 ## Docker
 - `task docker-up`

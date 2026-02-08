@@ -18,6 +18,11 @@ tasks:
       - task wire
       - git diff --exit-code internal/di/wire_gen.go
 
+  tidy-check:
+    cmds:
+      - go mod tidy
+      - git diff --exit-code go.mod go.sum
+
   test:
     cmds:
       - go test ./...
@@ -28,9 +33,15 @@ tasks:
 
   ci:
     cmds:
+      - task tidy-check
       - task wire-check
       - task lint
       - task test
+
+  hooks-install:
+    cmds:
+      - git config core.hooksPath .githooks
+      - chmod +x .githooks/pre-commit .githooks/pre-push
 
   docker-up:
     cmds:
