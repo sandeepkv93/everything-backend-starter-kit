@@ -235,14 +235,11 @@ Source: `docs/diagrams/observability-flow.mmd`
 ```mermaid
 flowchart LR
     PR[Push / Pull Request] --> GHA[GitHub Actions CI]
-    GHA --> B1[task bazel:build]
-    GHA --> B2[task bazel:test]
-    GHA --> GZ[task gazelle:check]
-    GHA --> TD[task tidy-check]
-    GHA --> WR[task wire-check]
+    GHA --> RUNALL[bash scripts/ci/run_all.sh]
+    GHA --> MIGSMOKE[bash scripts/ci/run_migration_smoke.sh]
 
     DEV[git push] --> PRE[pre-push hook]
-    PRE --> LOCALCI[task ci]
+    PRE --> LOCALCI[bash scripts/ci/run_all.sh]
 ```
 
 Source: `docs/diagrams/ci-flow.mmd`

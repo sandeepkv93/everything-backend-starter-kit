@@ -518,15 +518,9 @@ Pipeline steps:
 
 1. Checkout
 2. Setup Go from `go.mod`
-3. Install Task
-4. Setup Bazelisk
-5. Run `task bazel:build`
-6. Run `task bazel:test`
-7. Run `task gazelle:check`
-8. Run `task tidy-check`
-9. Run `task wire-check`
-10. Run `task security`
-11. Run migration smoke job (`task migrate:smoke`) against CI Postgres service
+3. Setup Bazelisk
+4. Run `bash scripts/ci/run_all.sh`
+5. Run migration smoke job (`bash scripts/ci/run_migration_smoke.sh`) against CI Postgres service
 
 ## Git Hooks
 
@@ -540,7 +534,7 @@ Hooks:
   - formats staged `.go` files with `gofmt`
   - runs `go mod tidy`
 - `.githooks/pre-push`
-  - runs `task ci`
+  - runs `bash scripts/ci/run_all.sh`
 
 ## Local Observability Stack
 

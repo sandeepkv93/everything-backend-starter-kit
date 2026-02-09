@@ -19,9 +19,7 @@ tasks:
 
   migrate:smoke:
     cmds:
-      - go run ./cmd/migrate status --ci --env-file /dev/null
-      - go run ./cmd/migrate plan --ci --env-file /dev/null
-      - go run ./cmd/migrate up --ci --env-file /dev/null
+      - bash scripts/ci/run_migration_smoke.sh
 
   seed:
     cmds:

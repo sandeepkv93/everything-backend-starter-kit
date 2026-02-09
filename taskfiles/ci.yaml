@@ -3,11 +3,4 @@ version: '3'
 tasks:
   ci:
     cmds:
-      - task bazel:build
-      - task bazel:test
-      - task lint
-      - task gazelle:check
-      - task tidy-check
-      - task wire-check
-      - task security
-      - task cli:smoke
+      - bash scripts/ci/run_all.sh
