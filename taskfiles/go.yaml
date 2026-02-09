@@ -33,6 +33,10 @@ tasks:
     cmds:
       - go test ./test/integration -run TestSessionManagement -v
 
+  test:email-verification:
+    cmds:
+      - go test ./test/integration -run TestEmailVerification -v
+
   lint:
     deps: [lint:tools]
     cmds:

@@ -142,6 +142,29 @@ sequenceDiagram
     API-->>U: {revoked_count: N}
 ```
 
+### Local Email Verification Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User Browser
+    participant API as API Server
+    participant DB as PostgreSQL
+    participant N as Dev Notifier
+
+    U->>API: POST /api/v1/auth/local/register
+    API->>DB: Create user + local credential (unverified)
+    API-->>U: {requires_verification: true}
+    U->>API: POST /api/v1/auth/local/verify/request (email)
+    API->>DB: Invalidate prior active verify tokens
+    API->>DB: Store hashed one-time token (purpose=email_verify, expires_at)
+    API->>N: Send verification link/token
+    U->>API: POST /api/v1/auth/local/verify/confirm (token)
+    API->>DB: Consume token and mark local credential email_verified
+    API-->>U: {status: email_verified}
+    U->>API: POST /api/v1/auth/local/login
+    API-->>U: Access/refresh cookies
+```
+
 ### Observability Data Flow
 
 ```mermaid
@@ -186,6 +209,7 @@ Your command surface stays simple, for example:
 - `task obs-validate`
 - `task test:auth-lifecycle`
 - `task test:session-management`
+- `task test:email-verification`
 - `task security`
 
 ## Auth Lifecycle Integration Tests
@@ -199,6 +223,10 @@ Run only lifecycle tests:
 Run only session management tests:
 
 - `task test:session-management`
+
+Run only email verification tests:
+
+- `task test:email-verification`
 
 Run all tests:
 
