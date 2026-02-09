@@ -69,6 +69,10 @@ tasks:
     cmds:
       - go test ./internal/service -run TestInMemoryNegativeLookupCacheStore -v
 
+  test:forgot-rate-limiter:
+    cmds:
+      - go test ./internal/di -run TestProvideForgotRateLimiter -v
+
   test:problem-details:
     cmds:
       - go test ./test/integration -run TestProblemDetails -v

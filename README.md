@@ -218,6 +218,7 @@ Your command surface stays simple, for example:
 - `task test:admin-list-etag`
 - `task test:rbac-permission-cache`
 - `task test:negative-lookup-cache`
+- `task test:forgot-rate-limiter`
 - `task test:problem-details`
 - `task test:idempotency`
 - `task test:audit`
@@ -266,6 +267,10 @@ Run only RBAC permission cache tests:
 Run only negative lookup cache store tests:
 
 - `task test:negative-lookup-cache`
+
+Run only forgot-password distributed limiter wiring tests:
+
+- `task test:forgot-rate-limiter`
 
 Run only problem-details negotiation tests:
 
