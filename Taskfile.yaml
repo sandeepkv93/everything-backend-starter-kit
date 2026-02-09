@@ -52,12 +52,12 @@ tasks:
   wire-check:
     cmds:
       - task wire
-      - go mod tidy
+      - GOTOOLCHAIN=go1.24.11 go mod tidy
       - git diff --exit-code internal/di/wire_gen.go go.mod go.sum
 
   tidy-check:
     cmds:
-      - go mod tidy
+      - GOTOOLCHAIN=go1.24.11 go mod tidy
       - git diff --exit-code go.mod go.sum
 
   test:

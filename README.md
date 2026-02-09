@@ -1,12 +1,12 @@
 # go-oauth-rbac-service
 [![CI](https://github.com/sandeepkv93/go-oauth-rbac-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeepkv93/go-oauth-rbac-service/actions/workflows/ci.yml)
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.24.11-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 REST API service in Go with Google OAuth login, JWT auth, secure cookie sessions, RBAC authorization, and OpenTelemetry observability.
 
 ## Prerequisites
-- Go `1.25.4`
+- Go `1.24.11`
 - [Task](https://taskfile.dev/)
 - [Bazelisk](https://github.com/bazelbuild/bazelisk) (Bazel-first build/test)
 - Docker (optional for local stack)
@@ -41,7 +41,7 @@ REST API service in Go with Google OAuth login, JWT auth, secure cookie sessions
 
 Notes:
 - Bazel uses a pinned supported Go SDK (`1.24.11`) via `rules_go`.
-- Host `go` remains `1.25.4` for local Go-native tooling.
+- Host `go` should be `1.24.11` to match Bazel and CI.
 
 ## Local Observability Stack
 - Start local stack with collector + Grafana + Tempo + Loki + Mimir:
