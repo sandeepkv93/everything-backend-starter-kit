@@ -1,14 +1,22 @@
 package repository
 
 import (
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
+	"errors"
 
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
 	"gorm.io/gorm"
 )
 
+var ErrPermissionNotFound = errors.New("permission not found")
+
 type PermissionRepository interface {
 	List() ([]domain.Permission, error)
+	FindByID(id uint) (*domain.Permission, error)
 	FindByPairs(pairs [][2]string) ([]domain.Permission, error)
+	FindByResourceAction(resource, action string) (*domain.Permission, error)
+	Create(permission *domain.Permission) error
+	Update(permission *domain.Permission) error
+	DeleteByID(id uint) error
 }
 
 type GormPermissionRepository struct{ db *gorm.DB }
@@ -21,6 +29,17 @@ func (r *GormPermissionRepository) List() ([]domain.Permission, error) {
 	var perms []domain.Permission
 	err := r.db.Find(&perms).Error
 	return perms, err
+}
+
+func (r *GormPermissionRepository) FindByID(id uint) (*domain.Permission, error) {
+	var p domain.Permission
+	if err := r.db.First(&p, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrPermissionNotFound
+		}
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (r *GormPermissionRepository) FindByPairs(pairs [][2]string) ([]domain.Permission, error) {
@@ -40,4 +59,44 @@ func (r *GormPermissionRepository) FindByPairs(pairs [][2]string) ([]domain.Perm
 		return nil, err
 	}
 	return perms, nil
+}
+
+func (r *GormPermissionRepository) FindByResourceAction(resource, action string) (*domain.Permission, error) {
+	var p domain.Permission
+	if err := r.db.Where("resource = ? AND action = ?", resource, action).First(&p).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrPermissionNotFound
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *GormPermissionRepository) Create(permission *domain.Permission) error {
+	return r.db.Create(permission).Error
+}
+
+func (r *GormPermissionRepository) Update(permission *domain.Permission) error {
+	res := r.db.Model(&domain.Permission{}).Where("id = ?", permission.ID).Updates(map[string]any{
+		"resource": permission.Resource,
+		"action":   permission.Action,
+	})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrPermissionNotFound
+	}
+	return nil
+}
+
+func (r *GormPermissionRepository) DeleteByID(id uint) error {
+	res := r.db.Delete(&domain.Permission{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrPermissionNotFound
+	}
+	return nil
 }

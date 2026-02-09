@@ -120,6 +120,31 @@ sequenceDiagram
 
 Source: `docs/diagrams/password-reset-flow.mmd`
 
+## Admin RBAC Write and Sync Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin Client
+    participant API as API Server
+    participant DB as PostgreSQL
+    participant AUD as Audit Log
+    participant MET as OTel Metrics
+
+    A->>API: PATCH /api/v1/admin/roles/{id}
+    API->>DB: Validate protected/self-lockout rules + update role/permissions
+    API->>AUD: Emit admin.role.updated (before/after summary)
+    API->>MET: admin.rbac.mutations{entity=role,action=update,status=*}
+    API-->>A: Updated role
+
+    A->>API: POST /api/v1/admin/rbac/sync
+    API->>DB: Idempotent seed reconcile
+    API->>AUD: Emit admin.rbac.sync (actor + report)
+    API->>MET: admin.rbac.mutations{entity=sync,action=sync,status=*}
+    API-->>A: {created_permissions, created_roles, bound_permissions, noop}
+```
+
+Source: `docs/diagrams/rbac-admin-flow.mmd`
+
 ## Observability Data Flow
 
 ```mermaid

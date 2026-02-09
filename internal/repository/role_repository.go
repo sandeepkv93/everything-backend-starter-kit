@@ -1,25 +1,46 @@
 package repository
 
 import (
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
+	"errors"
 
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
 	"gorm.io/gorm"
 )
 
+var ErrRoleNotFound = errors.New("role not found")
+
 type RoleRepository interface {
+	FindByID(id uint) (*domain.Role, error)
 	FindByName(name string) (*domain.Role, error)
 	List() ([]domain.Role, error)
 	Create(role *domain.Role, permissionIDs []uint) error
+	Update(role *domain.Role, permissionIDs []uint) error
+	DeleteByID(id uint) error
 }
 
 type GormRoleRepository struct{ db *gorm.DB }
 
 func NewRoleRepository(db *gorm.DB) RoleRepository { return &GormRoleRepository{db: db} }
 
+func (r *GormRoleRepository) FindByID(id uint) (*domain.Role, error) {
+	var role domain.Role
+	err := r.db.Preload("Permissions").First(&role, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrRoleNotFound
+		}
+		return nil, err
+	}
+	return &role, nil
+}
+
 func (r *GormRoleRepository) FindByName(name string) (*domain.Role, error) {
 	var role domain.Role
 	err := r.db.Preload("Permissions").Where("name = ?", name).First(&role).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrRoleNotFound
+		}
 		return nil, err
 	}
 	return &role, nil
@@ -43,4 +64,40 @@ func (r *GormRoleRepository) Create(role *domain.Role, permissionIDs []uint) err
 		return err
 	}
 	return r.db.Model(role).Association("Permissions").Replace(perms)
+}
+
+func (r *GormRoleRepository) Update(role *domain.Role, permissionIDs []uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var existing domain.Role
+		if err := tx.Preload("Permissions").First(&existing, role.ID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrRoleNotFound
+			}
+			return err
+		}
+		if err := tx.Model(&existing).Updates(map[string]any{
+			"name":        role.Name,
+			"description": role.Description,
+		}).Error; err != nil {
+			return err
+		}
+		var perms []domain.Permission
+		if len(permissionIDs) > 0 {
+			if err := tx.Where("id IN ?", permissionIDs).Find(&perms).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Model(&existing).Association("Permissions").Replace(perms)
+	})
+}
+
+func (r *GormRoleRepository) DeleteByID(id uint) error {
+	res := r.db.Delete(&domain.Role{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrRoleNotFound
+	}
+	return nil
 }

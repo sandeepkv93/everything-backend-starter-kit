@@ -219,6 +219,55 @@ components:
           - users:read
           - users:write
 
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        description:
+          type: string
+          maxLength: 255
+        permissions:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9_\-]+:[a-zA-Z0-9_\-]+$'
+      example:
+        name: support_admin_v2
+        description: Updated description
+        permissions:
+          - users:read
+          - users:write
+          - roles:read
+
+    CreatePermissionRequest:
+      type: object
+      required: [resource, action]
+      properties:
+        resource:
+          type: string
+          pattern: '^[a-zA-Z0-9_\-]+$'
+          example: sessions
+        action:
+          type: string
+          pattern: '^[a-zA-Z0-9_\-]+$'
+          example: revoke
+
+    UpdatePermissionRequest:
+      type: object
+      required: [resource, action]
+      properties:
+        resource:
+          type: string
+          pattern: '^[a-zA-Z0-9_\-]+$'
+          example: sessions
+        action:
+          type: string
+          pattern: '^[a-zA-Z0-9_\-]+$'
+          example: revoke
+
     UserListResponse:
       type: object
       required: [success, data, meta]
@@ -270,6 +319,80 @@ components:
           enum: [true]
         data:
           $ref: '#/components/schemas/RoleSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    DeleteRoleResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [role_id, status]
+          properties:
+            role_id:
+              type: integer
+              format: uint64
+              example: 7
+            status:
+              type: string
+              example: deleted
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    DeletePermissionResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [permission_id, status]
+          properties:
+            permission_id:
+              type: integer
+              format: uint64
+              example: 13
+            status:
+              type: string
+              example: deleted
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    RBACSyncReport:
+      type: object
+      required: [created_permissions, created_roles, bound_permissions, noop]
+      properties:
+        created_permissions:
+          type: integer
+          format: int64
+          example: 0
+        created_roles:
+          type: integer
+          format: int64
+          example: 0
+        bound_permissions:
+          type: integer
+          format: int64
+          example: 0
+        noop:
+          type: boolean
+          example: true
+
+    RBACSyncResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/RBACSyncReport'
         meta:
           $ref: '#/components/schemas/Meta'
 
@@ -1028,6 +1151,221 @@ paths:
                     meta:
                       request_id: req-abc123
                       timestamp: "2026-02-09T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [Admin]
+      summary: Create permission
+      description: Creates a permission using strict `resource:action` parts.
+      operationId: adminCreatePermission
+      security:
+        - accessTokenCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionRequest'
+      responses:
+        '201':
+          description: Permission created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '409':
+          description: Permission conflict.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /admin/roles/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update role
+      description: Updates role name/description and replaces permission bindings.
+      operationId: adminUpdateRole
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: uint64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRoleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Role conflict.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [Admin]
+      summary: Delete role
+      description: Deletes a role unless protected by server policy.
+      operationId: adminDeleteRole
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: uint64
+            minimum: 1
+      responses:
+        '200':
+          description: Role deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteRoleResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /admin/permissions/{id}:
+    patch:
+      tags: [Admin]
+      summary: Update permission
+      description: Updates one permission and enforces protected/self-lockout constraints.
+      operationId: adminUpdatePermission
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: uint64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionRequest'
+      responses:
+        '200':
+          description: Permission updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: Permission conflict.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags: [Admin]
+      summary: Delete permission
+      description: Deletes a permission unless protected by policy.
+      operationId: adminDeletePermission
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: uint64
+            minimum: 1
+      responses:
+        '200':
+          description: Permission deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletePermissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /admin/rbac/sync:
+    post:
+      tags: [Admin]
+      summary: Reconcile RBAC seed definitions
+      description: Idempotently ensures default roles/permissions and bindings are present.
+      operationId: adminSyncRBAC
+      security:
+        - accessTokenCookie: []
+      responses:
+        '200':
+          description: Sync report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RBACSyncResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':

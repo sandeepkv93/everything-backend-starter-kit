@@ -38,6 +38,8 @@ type Config struct {
 	AuthPasswordResetTokenTTL         time.Duration
 	AuthPasswordResetBaseURL          string
 	AuthPasswordForgotRateLimitPerMin int
+	RBACProtectedRoles                []string
+	RBACProtectedPermissions          []string
 	BootstrapAdminEmail               string
 
 	AuthRateLimitPerMin          int
@@ -98,6 +100,8 @@ func Load() (*Config, error) {
 		AuthEmailVerifyBaseURL:            strings.TrimSpace(os.Getenv("AUTH_EMAIL_VERIFY_BASE_URL")),
 		AuthPasswordResetBaseURL:          strings.TrimSpace(os.Getenv("AUTH_PASSWORD_RESET_BASE_URL")),
 		AuthPasswordForgotRateLimitPerMin: getEnvInt("AUTH_PASSWORD_FORGOT_RATE_LIMIT_PER_MIN", 5),
+		RBACProtectedRoles:                splitCSV(getEnv("RBAC_PROTECTED_ROLES", "admin,user")),
+		RBACProtectedPermissions:          splitCSV(getEnv("RBAC_PROTECTED_PERMISSIONS", "users:read,users:write,roles:read,roles:write,permissions:read,permissions:write")),
 		BootstrapAdminEmail:               strings.TrimSpace(strings.ToLower(os.Getenv("BOOTSTRAP_ADMIN_EMAIL"))),
 		AuthRateLimitPerMin:               getEnvInt("AUTH_RATE_LIMIT_PER_MIN", 30),
 		APIRateLimitPerMin:                getEnvInt("API_RATE_LIMIT_PER_MIN", 120),
@@ -224,6 +228,13 @@ func (c *Config) Validate() error {
 	}
 	if c.AuthPasswordForgotRateLimitPerMin <= 0 {
 		errs = append(errs, "AUTH_PASSWORD_FORGOT_RATE_LIMIT_PER_MIN must be > 0")
+	}
+	for _, token := range c.RBACProtectedPermissions {
+		parts := strings.SplitN(strings.TrimSpace(token), ":", 2)
+		if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+			errs = append(errs, "RBAC_PROTECTED_PERMISSIONS entries must use resource:action format")
+			break
+		}
 	}
 	if c.JWTAccessTTL <= 0 || c.JWTAccessTTL > time.Hour {
 		errs = append(errs, "JWT_ACCESS_TTL must be between 1s and 1h")

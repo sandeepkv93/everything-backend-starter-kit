@@ -22,7 +22,7 @@ type AppMetrics struct {
 	authLoginCounter   metric.Int64Counter
 	authRefreshCounter metric.Int64Counter
 	authLogoutCounter  metric.Int64Counter
-	adminRoleCounter   metric.Int64Counter
+	adminRBACCounter   metric.Int64Counter
 	authReqDuration    metric.Float64Histogram
 }
 
@@ -87,7 +87,7 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 	if err != nil {
 		return nil, err
 	}
-	adminRoleCounter, err := meter.Int64Counter("admin.role.mutations")
+	adminRBACCounter, err := meter.Int64Counter("admin.rbac.mutations")
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 		authLoginCounter:   loginCounter,
 		authRefreshCounter: refreshCounter,
 		authLogoutCounter:  logoutCounter,
-		adminRoleCounter:   adminRoleCounter,
+		adminRBACCounter:   adminRBACCounter,
 		authReqDuration:    authReqDuration,
 	}
 	metricsMu.Unlock()
@@ -145,14 +145,22 @@ func RecordAuthLogout(ctx context.Context, status string) {
 	m.authLogoutCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", status)))
 }
 
-func RecordAdminRoleMutation(ctx context.Context, action string) {
+func RecordAdminRBACMutation(ctx context.Context, entity, action, status string) {
 	metricsMu.RLock()
 	m := appMetrics
 	metricsMu.RUnlock()
 	if m == nil {
 		return
 	}
-	m.adminRoleCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("action", action)))
+	m.adminRBACCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("entity", entity),
+		attribute.String("action", action),
+		attribute.String("status", status),
+	))
+}
+
+func RecordAdminRoleMutation(ctx context.Context, action string) {
+	RecordAdminRBACMutation(ctx, "role", action, "success")
 }
 
 func RecordAuthRequestDuration(ctx context.Context, endpoint, status string, duration time.Duration) {

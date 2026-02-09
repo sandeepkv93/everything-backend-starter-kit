@@ -211,6 +211,7 @@ Your command surface stays simple, for example:
 - `task test:session-management`
 - `task test:email-verification`
 - `task test:password-reset`
+- `task test:admin-rbac-write`
 - `task security`
 
 ## Auth Lifecycle Integration Tests
@@ -232,6 +233,10 @@ Run only email verification tests:
 Run only password reset tests:
 
 - `task test:password-reset`
+
+Run only RBAC write API tests:
+
+- `task test:admin-rbac-write`
 
 Run all tests:
 
@@ -278,6 +283,8 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `AUTH_PASSWORD_RESET_BASE_URL` (optional frontend reset URL)
 - `AUTH_PASSWORD_FORGOT_RATE_LIMIT_PER_MIN` (default `5`)
 - `BOOTSTRAP_ADMIN_EMAIL`
+- `RBAC_PROTECTED_ROLES` (default `admin,user`)
+- `RBAC_PROTECTED_PERMISSIONS` (default includes core admin permissions)
 - `AUTH_RATE_LIMIT_PER_MIN` (default `30`)
 - `API_RATE_LIMIT_PER_MIN` (default `120`)
 - `RATE_LIMIT_REDIS_ENABLED` (default `true`)
@@ -352,6 +359,9 @@ Auth:
 User:
 
 - `GET /api/v1/me` (auth required)
+- `GET /api/v1/me/sessions` (auth required)
+- `DELETE /api/v1/me/sessions/{session_id}` (auth + CSRF required)
+- `POST /api/v1/me/sessions/revoke-others` (auth + CSRF required)
 
 Admin (auth + permission checks):
 
@@ -359,7 +369,13 @@ Admin (auth + permission checks):
 - `PATCH /api/v1/admin/users/{id}/roles` (`users:write`)
 - `GET /api/v1/admin/roles` (`roles:read`)
 - `POST /api/v1/admin/roles` (`roles:write`)
+- `PATCH /api/v1/admin/roles/{id}` (`roles:write`)
+- `DELETE /api/v1/admin/roles/{id}` (`roles:write`)
 - `GET /api/v1/admin/permissions` (`permissions:read`)
+- `POST /api/v1/admin/permissions` (`permissions:write`)
+- `PATCH /api/v1/admin/permissions/{id}` (`permissions:write`)
+- `DELETE /api/v1/admin/permissions/{id}` (`permissions:write`)
+- `POST /api/v1/admin/rbac/sync` (`roles:write`)
 
 OpenAPI spec:
 

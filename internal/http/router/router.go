@@ -105,7 +105,13 @@ func NewRouter(dep Dependencies) http.Handler {
 			r.With(middleware.RequirePermission(dep.RBACService, "users:write")).Patch("/users/{id}/roles", dep.AdminHandler.SetUserRoles)
 			r.With(middleware.RequirePermission(dep.RBACService, "roles:read")).Get("/roles", dep.AdminHandler.ListRoles)
 			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Post("/roles", dep.AdminHandler.CreateRole)
+			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Patch("/roles/{id}", dep.AdminHandler.UpdateRole)
+			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Delete("/roles/{id}", dep.AdminHandler.DeleteRole)
 			r.With(middleware.RequirePermission(dep.RBACService, "permissions:read")).Get("/permissions", dep.AdminHandler.ListPermissions)
+			r.With(middleware.RequirePermission(dep.RBACService, "permissions:write")).Post("/permissions", dep.AdminHandler.CreatePermission)
+			r.With(middleware.RequirePermission(dep.RBACService, "permissions:write")).Patch("/permissions/{id}", dep.AdminHandler.UpdatePermission)
+			r.With(middleware.RequirePermission(dep.RBACService, "permissions:write")).Delete("/permissions/{id}", dep.AdminHandler.DeletePermission)
+			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Post("/rbac/sync", dep.AdminHandler.SyncRBAC)
 		})
 	})
 

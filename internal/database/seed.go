@@ -16,52 +16,97 @@ var defaultPermissions = []domain.Permission{
 	{Resource: "roles", Action: "read"},
 	{Resource: "roles", Action: "write"},
 	{Resource: "permissions", Action: "read"},
+	{Resource: "permissions", Action: "write"},
+}
+
+type RBACSyncReport struct {
+	CreatedPermissions int  `json:"created_permissions"`
+	CreatedRoles       int  `json:"created_roles"`
+	BoundPermissions   int  `json:"bound_permissions"`
+	Noop               bool `json:"noop"`
 }
 
 func Seed(db *gorm.DB, bootstrapAdminEmail string) error {
+	_, err := SeedSync(db, bootstrapAdminEmail)
+	return err
+}
+
+func SeedSync(db *gorm.DB, bootstrapAdminEmail string) (*RBACSyncReport, error) {
+	report := &RBACSyncReport{}
+
 	for _, p := range defaultPermissions {
-		if err := db.Where("resource = ? AND action = ?", p.Resource, p.Action).FirstOrCreate(&p).Error; err != nil {
-			return err
+		res := db.Where("resource = ? AND action = ?", p.Resource, p.Action).FirstOrCreate(&p)
+		if res.Error != nil {
+			return nil, res.Error
+		}
+		if res.RowsAffected > 0 {
+			report.CreatedPermissions++
 		}
 	}
 
 	userRole := domain.Role{Name: "user", Description: "Default user role"}
 	adminRole := domain.Role{Name: "admin", Description: "Administrator role"}
-	if err := db.Where("name = ?", userRole.Name).FirstOrCreate(&userRole).Error; err != nil {
-		return err
+	res := db.Where("name = ?", userRole.Name).FirstOrCreate(&userRole)
+	if res.Error != nil {
+		return nil, res.Error
 	}
-	if err := db.Where("name = ?", adminRole.Name).FirstOrCreate(&adminRole).Error; err != nil {
-		return err
+	if res.RowsAffected > 0 {
+		report.CreatedRoles++
+	}
+	res = db.Where("name = ?", adminRole.Name).FirstOrCreate(&adminRole)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected > 0 {
+		report.CreatedRoles++
 	}
 
 	var perms []domain.Permission
 	if err := db.Where("resource IN ?", []string{"users", "roles", "permissions"}).Find(&perms).Error; err != nil {
-		return err
+		return nil, err
 	}
 	if len(perms) > 0 {
+		var before domain.Role
+		if err := db.Preload("Permissions").Where("id = ?", adminRole.ID).First(&before).Error; err != nil {
+			return nil, err
+		}
+		beforeSet := make(map[uint]struct{}, len(before.Permissions))
+		for _, p := range before.Permissions {
+			beforeSet[p.ID] = struct{}{}
+		}
 		if err := db.Model(&adminRole).Association("Permissions").Replace(&perms); err != nil {
-			return err
+			return nil, err
+		}
+		for _, p := range perms {
+			if _, ok := beforeSet[p.ID]; !ok {
+				report.BoundPermissions++
+			}
 		}
 	}
 
 	email := strings.TrimSpace(strings.ToLower(bootstrapAdminEmail))
-	if email == "" {
-		return nil
-	}
-
-	var u domain.User
-	if err := db.Where("email = ?", email).First(&u).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil
+	if email != "" {
+		var u domain.User
+		if err := db.Where("email = ?", email).First(&u).Error; err != nil {
+			if err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+		} else {
+			var count int64
+			if err := db.Table("user_roles").Where("user_id = ? AND role_id = ?", u.ID, adminRole.ID).Count(&count).Error; err != nil {
+				return nil, err
+			}
+			if count == 0 {
+				if err := db.Model(&u).Association("Roles").Append(&adminRole); err != nil {
+					return nil, fmt.Errorf("assign bootstrap admin role: %w", err)
+				}
+				report.BoundPermissions++
+			}
 		}
-		return err
 	}
 
-	if err := db.Model(&u).Association("Roles").Append(&adminRole); err != nil {
-		return fmt.Errorf("assign bootstrap admin role: %w", err)
-	}
-
-	return nil
+	report.Noop = report.CreatedPermissions == 0 && report.CreatedRoles == 0 && report.BoundPermissions == 0
+	return report, nil
 }
 
 func VerifyLocalEmail(db *gorm.DB, email string) error {

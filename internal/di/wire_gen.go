@@ -50,7 +50,7 @@ func InitializeApp() (*app.App, error) {
 	sessionService := provideSessionService(configConfig, sessionRepository)
 	userHandler := handler.NewUserHandler(userService, sessionService)
 	permissionRepository := repository.NewPermissionRepository(db)
-	adminHandler := handler.NewAdminHandler(userService, roleRepository, permissionRepository)
+	adminHandler := handler.NewAdminHandler(userService, roleRepository, permissionRepository, rbacService, db, configConfig)
 	universalClient := provideRedisClient(configConfig)
 	globalRateLimiterFunc := provideGlobalRateLimiter(configConfig, universalClient)
 	authRateLimiterFunc := provideAuthRateLimiter(configConfig, universalClient)

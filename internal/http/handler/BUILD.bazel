@@ -10,6 +10,8 @@ go_library(
     importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/handler",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/config",
+        "//internal/database",
         "//internal/domain",
         "//internal/http/middleware",
         "//internal/http/response",
@@ -18,5 +20,6 @@ go_library(
         "//internal/security",
         "//internal/service",
         "@com_github_go_chi_chi_v5//:chi",
+        "@io_gorm_gorm//:gorm",
     ],
 )

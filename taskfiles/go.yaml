@@ -41,6 +41,10 @@ tasks:
     cmds:
       - go test ./test/integration -run TestPasswordReset -v
 
+  test:admin-rbac-write:
+    cmds:
+      - go test ./test/integration -run TestAdminRBAC -v
+
   lint:
     deps: [lint:tools]
     cmds:
