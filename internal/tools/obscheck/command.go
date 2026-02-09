@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -60,9 +59,10 @@ func newRunCommand(opts *options) *cobra.Command {
 					return nil, err
 				}
 				details := []string{fmt.Sprintf("traffic generated total=%d failures=%d", lgRes.TotalRequests, lgRes.Failures)}
+				recentCutoff := time.Now().Add(-2 * time.Minute)
 				time.Sleep(8 * time.Second)
 
-				traceID, err := fetchTraceIDFromExemplar(ctx, *opts)
+				traceID, err := fetchTraceIDFromExemplar(ctx, *opts, recentCutoff)
 				if err != nil {
 					return details, err
 				}
@@ -104,8 +104,11 @@ func grafanaGET(ctx context.Context, opts options, path string) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	u.Path = strings.TrimRight(u.Path, "/") + path
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	rel, err := url.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.ResolveReference(rel).String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,10 +124,10 @@ func grafanaGET(ctx context.Context, opts options, path string) ([]byte, error) 
 	return ioReadAll(resp.Body)
 }
 
-func fetchTraceIDFromExemplar(ctx context.Context, opts options) (string, error) {
+func fetchTraceIDFromExemplar(ctx context.Context, opts options, notBefore time.Time) (string, error) {
 	start := time.Now().Add(-opts.window).Unix()
 	end := time.Now().Unix()
-	path := fmt.Sprintf("/api/datasources/proxy/1/api/v1/query_exemplars?query=auth_request_duration_seconds_bucket&start=%d&end=%d", start, end)
+	path := fmt.Sprintf("/api/datasources/proxy/uid/mimir/api/v1/query_exemplars?query=auth_request_duration_seconds_bucket&start=%d&end=%d", start, end)
 	body, err := grafanaGET(ctx, opts, path)
 	if err != nil {
 		return "", err
@@ -134,56 +137,85 @@ func fetchTraceIDFromExemplar(ctx context.Context, opts options) (string, error)
 		return "", err
 	}
 	data, _ := payload["data"].([]any)
+	var bestTraceID string
+	var bestTS float64
 	for _, series := range data {
 		sm, _ := series.(map[string]any)
 		exemplars, _ := sm["exemplars"].([]any)
 		for _, e := range exemplars {
 			em, _ := e.(map[string]any)
 			labels, _ := em["labels"].(map[string]any)
-			if tid, ok := labels["trace_id"].(string); ok && len(tid) == 32 {
-				return tid, nil
+			timestamp, _ := em["timestamp"].(float64)
+			if timestamp <= 0 {
+				continue
+			}
+			if notBefore.Unix() > 0 && int64(timestamp) < notBefore.Unix() {
+				continue
+			}
+			if tid, ok := labels["trace_id"].(string); ok && len(tid) == 32 && timestamp > bestTS {
+				bestTS = timestamp
+				bestTraceID = tid
 			}
 		}
 	}
-	return "", fmt.Errorf("no trace_id exemplar found")
+	if bestTraceID != "" {
+		return bestTraceID, nil
+	}
+	return "", fmt.Errorf("no recent trace_id exemplar found")
 }
 
 func verifyTempoTrace(ctx context.Context, opts options, traceID string) error {
-	path := fmt.Sprintf("/api/datasources/proxy/3/api/traces/%s", traceID)
-	body, err := grafanaGET(ctx, opts, path)
-	if err != nil {
-		return err
+	path := fmt.Sprintf("/api/datasources/proxy/uid/tempo/api/traces/%s", traceID)
+	var lastErr error
+	for i := 0; i < 5; i++ {
+		body, err := grafanaGET(ctx, opts, path)
+		if err != nil {
+			lastErr = err
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(body, &payload); err != nil {
+			return err
+		}
+		batches, _ := payload["batches"].([]any)
+		if len(batches) > 0 {
+			return nil
+		}
+		lastErr = fmt.Errorf("tempo trace has no batches yet")
+		time.Sleep(2 * time.Second)
 	}
-	var payload map[string]any
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return err
+	if lastErr != nil {
+		return lastErr
 	}
-	batches, _ := payload["batches"].([]any)
-	if len(batches) == 0 {
-		return fmt.Errorf("tempo trace has no batches")
-	}
-	return nil
+	return fmt.Errorf("tempo trace lookup failed")
 }
 
 func verifyLokiTraceLogs(ctx context.Context, opts options, traceID string) error {
 	nowNS := time.Now().UnixNano()
 	startNS := nowNS - int64(30*time.Minute)
-	q := url.QueryEscape(fmt.Sprintf("{service_name=\"%s\"} |= \"trace_id=%s\"", opts.serviceName, traceID))
-	path := fmt.Sprintf("/api/datasources/proxy/2/loki/api/v1/query_range?query=%s&start=%d&end=%d&limit=1&direction=backward", q, startNS, nowNS)
-	body, err := grafanaGET(ctx, opts, path)
-	if err != nil {
-		return err
+	queries := []string{
+		fmt.Sprintf("{service_name=\"%s\"} | json | trace_id=\"%s\"", opts.serviceName, traceID),
+		fmt.Sprintf("{service_name=~\".+\"} | json | trace_id=\"%s\"", traceID),
 	}
-	var payload map[string]any
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return err
+	for _, raw := range queries {
+		q := url.QueryEscape(raw)
+		path := fmt.Sprintf("/api/datasources/proxy/uid/loki/loki/api/v1/query_range?query=%s&start=%d&end=%d&limit=1&direction=backward", q, startNS, nowNS)
+		body, err := grafanaGET(ctx, opts, path)
+		if err != nil {
+			return err
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(body, &payload); err != nil {
+			return err
+		}
+		data, _ := payload["data"].(map[string]any)
+		result, _ := data["result"].([]any)
+		if len(result) > 0 {
+			return nil
+		}
 	}
-	data, _ := payload["data"].(map[string]any)
-	result, _ := data["result"].([]any)
-	if len(result) == 0 {
-		return fmt.Errorf("no correlated loki logs found for trace_id %s", traceID)
-	}
-	return nil
+	return fmt.Errorf("no correlated loki logs found for trace_id %s", traceID)
 }
 
 func ioReadAll(r io.Reader) ([]byte, error) { return io.ReadAll(r) }

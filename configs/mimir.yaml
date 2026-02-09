@@ -19,31 +19,38 @@ ruler_storage:
   filesystem:
     dir: /tmp/mimir/rules
 
+ruler:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+
 compactor:
   data_dir: /tmp/mimir/compactor
+  sharding_ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
 
 distributor:
   ring:
     instance_addr: 127.0.0.1
     kvstore:
-      store: memberlist
+      store: inmemory
 
 ingester:
   ring:
     replication_factor: 1
     instance_addr: 127.0.0.1
     kvstore:
-      store: memberlist
+      store: inmemory
 
 store_gateway:
   sharding_ring:
+    instance_addr: 127.0.0.1
     replication_factor: 1
     kvstore:
-      store: memberlist
-
-memberlist:
-  join_members:
-    - mimir
+      store: inmemory
 
 limits:
   max_global_exemplars_per_user: 100000
