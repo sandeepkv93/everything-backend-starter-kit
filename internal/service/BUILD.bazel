@@ -4,6 +4,7 @@ go_library(
     name = "service",
     srcs = [
         "auth_service.go",
+        "email_verification_notifier.go",
         "interfaces.go",
         "oauth_service.go",
         "rbac_service.go",

@@ -12,6 +12,8 @@ type AuthServiceInterface interface {
 	LoginWithGoogleCode(code, ua, ip string) (*LoginResult, error)
 	RegisterLocal(email, name, password, ua, ip string) (*LoginResult, error)
 	LoginWithLocalPassword(email, password, ua, ip string) (*LoginResult, error)
+	RequestLocalEmailVerification(email string) error
+	ConfirmLocalEmailVerification(token string) error
 	ChangeLocalPassword(userID uint, currentPassword, newPassword string) error
 	Refresh(refreshToken, ua, ip string) (*LoginResult, error)
 	Logout(userID uint) error

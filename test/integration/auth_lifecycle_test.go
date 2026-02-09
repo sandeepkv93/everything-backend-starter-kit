@@ -5,10 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,6 +46,29 @@ type apiEnvelope struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 	} `json:"error"`
+}
+
+type verificationCaptureNotifier struct {
+	mu    sync.Mutex
+	token string
+}
+
+func (n *verificationCaptureNotifier) SendEmailVerification(_ context.Context, notification service.VerificationNotification) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.token = notification.Token
+	return nil
+}
+
+func (n *verificationCaptureNotifier) LastToken() string {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.token
+}
+
+type authTestServerOptions struct {
+	cfgOverride func(cfg *config.Config)
+	notifier    service.EmailVerificationNotifier
 }
 
 func TestAuthLifecycleLoginRefreshLogoutRevoked(t *testing.T) {
@@ -199,6 +225,10 @@ func TestAuthLifecycleRefreshReuseInvalidatesFamily(t *testing.T) {
 }
 
 func newAuthTestServer(t *testing.T) (string, *http.Client, func()) {
+	return newAuthTestServerWithOptions(t, authTestServerOptions{})
+}
+
+func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (string, *http.Client, func()) {
 	t.Helper()
 
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
@@ -218,9 +248,14 @@ func newAuthTestServer(t *testing.T) (string, *http.Client, func()) {
 		AuthGoogleEnabled:                 false,
 		AuthLocalEnabled:                  true,
 		AuthLocalRequireEmailVerification: false,
+		AuthEmailVerifyTokenTTL:           30 * time.Minute,
+		AuthEmailVerifyBaseURL:            "http://localhost:3000/verify-email",
 		BootstrapAdminEmail:               "",
 		JWTAccessTTL:                      15 * time.Minute,
 		JWTRefreshTTL:                     24 * time.Hour,
+	}
+	if opts.cfgOverride != nil {
+		opts.cfgOverride(cfg)
 	}
 
 	userRepo := repository.NewUserRepository(db)
@@ -241,7 +276,12 @@ func newAuthTestServer(t *testing.T) (string, *http.Client, func()) {
 	tokenSvc := service.NewTokenService(jwtMgr, sessionRepo, "pepper-1234567890", 15*time.Minute, 24*time.Hour)
 	sessionSvc := service.NewSessionService(sessionRepo, "pepper-1234567890")
 	oauthSvc := service.NewOAuthService(oauthProviderStub{}, userRepo, oauthRepo, roleRepo)
-	authSvc := service.NewAuthService(cfg, oauthSvc, tokenSvc, userSvc, roleRepo, localCredRepo)
+	notifier := opts.notifier
+	if notifier == nil {
+		notifier = service.NewDevEmailVerificationNotifier(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+	}
+	verificationTokenRepo := repository.NewVerificationTokenRepository(db)
+	authSvc := service.NewAuthService(cfg, oauthSvc, tokenSvc, userSvc, roleRepo, localCredRepo, verificationTokenRepo, notifier)
 	cookieMgr := security.NewCookieManager("", false, "lax")
 
 	authHandler := handler.NewAuthHandler(authSvc, cookieMgr, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)

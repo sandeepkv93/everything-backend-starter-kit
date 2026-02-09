@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,12 +22,14 @@ import (
 )
 
 type AuthService struct {
-	cfg            *config.Config
-	oauthSvc       *OAuthService
-	tokenSvc       *TokenService
-	userSvc        *UserService
-	roleRepo       repository.RoleRepository
-	localCredsRepo repository.LocalCredentialRepository
+	cfg                   *config.Config
+	oauthSvc              *OAuthService
+	tokenSvc              *TokenService
+	userSvc               *UserService
+	roleRepo              repository.RoleRepository
+	localCredsRepo        repository.LocalCredentialRepository
+	verificationTokenRepo repository.VerificationTokenRepository
+	verificationNotifier  EmailVerificationNotifier
 }
 
 type LoginResult struct {
@@ -42,6 +47,7 @@ var (
 	ErrLocalEmailUnverified = errors.New("email verification required")
 	ErrInvalidCredentials   = errors.New("invalid credentials")
 	ErrWeakPassword         = errors.New("password does not meet policy requirements")
+	ErrInvalidVerifyToken   = errors.New("invalid or expired verification token")
 )
 
 var (
@@ -51,14 +57,25 @@ var (
 	specialRe   = regexp.MustCompile(`[^A-Za-z0-9]`)
 )
 
-func NewAuthService(cfg *config.Config, oauthSvc *OAuthService, tokenSvc *TokenService, userSvc *UserService, roleRepo repository.RoleRepository, localCredsRepo repository.LocalCredentialRepository) *AuthService {
+func NewAuthService(
+	cfg *config.Config,
+	oauthSvc *OAuthService,
+	tokenSvc *TokenService,
+	userSvc *UserService,
+	roleRepo repository.RoleRepository,
+	localCredsRepo repository.LocalCredentialRepository,
+	verificationTokenRepo repository.VerificationTokenRepository,
+	verificationNotifier EmailVerificationNotifier,
+) *AuthService {
 	return &AuthService{
-		cfg:            cfg,
-		oauthSvc:       oauthSvc,
-		tokenSvc:       tokenSvc,
-		userSvc:        userSvc,
-		roleRepo:       roleRepo,
-		localCredsRepo: localCredsRepo,
+		cfg:                   cfg,
+		oauthSvc:              oauthSvc,
+		tokenSvc:              tokenSvc,
+		userSvc:               userSvc,
+		roleRepo:              roleRepo,
+		localCredsRepo:        localCredsRepo,
+		verificationTokenRepo: verificationTokenRepo,
+		verificationNotifier:  verificationNotifier,
 	}
 }
 
@@ -191,6 +208,92 @@ func (s *AuthService) LoginWithLocalPassword(email, password, ua, ip string) (*L
 	return &LoginResult{User: user, AccessToken: access, RefreshToken: refresh, CSRFToken: csrf, ExpiresAt: time.Now().Add(s.cfg.JWTAccessTTL)}, nil
 }
 
+func (s *AuthService) RequestLocalEmailVerification(email string) error {
+	if !s.cfg.AuthLocalEnabled {
+		return ErrLocalAuthDisabled
+	}
+	email = strings.TrimSpace(strings.ToLower(email))
+	if err := validateEmail(email); err != nil {
+		return err
+	}
+
+	cred, err := s.localCredsRepo.FindByEmail(email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	if cred.EmailVerified {
+		return nil
+	}
+
+	now := time.Now().UTC()
+	if err := s.verificationTokenRepo.InvalidateActiveByUserPurpose(cred.UserID, "email_verify", now); err != nil {
+		return err
+	}
+
+	rawToken, err := security.NewRandomString(32)
+	if err != nil {
+		return err
+	}
+	expiresAt := now.Add(s.cfg.AuthEmailVerifyTokenTTL)
+	hash := hashVerificationToken(rawToken)
+	if err := s.verificationTokenRepo.Create(&domain.VerificationToken{
+		UserID:    cred.UserID,
+		TokenHash: hash,
+		Purpose:   "email_verify",
+		ExpiresAt: expiresAt,
+	}); err != nil {
+		return err
+	}
+
+	verifyURL := ""
+	if strings.TrimSpace(s.cfg.AuthEmailVerifyBaseURL) != "" {
+		u, err := url.Parse(s.cfg.AuthEmailVerifyBaseURL)
+		if err != nil {
+			return fmt.Errorf("invalid AUTH_EMAIL_VERIFY_BASE_URL: %w", err)
+		}
+		q := u.Query()
+		q.Set("token", rawToken)
+		u.RawQuery = q.Encode()
+		verifyURL = u.String()
+	}
+
+	return s.verificationNotifier.SendEmailVerification(context.Background(), VerificationNotification{
+		UserID:          cred.UserID,
+		Email:           email,
+		Token:           rawToken,
+		ExpiresAt:       expiresAt,
+		VerificationURL: verifyURL,
+	})
+}
+
+func (s *AuthService) ConfirmLocalEmailVerification(token string) error {
+	if !s.cfg.AuthLocalEnabled {
+		return ErrLocalAuthDisabled
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return ErrInvalidVerifyToken
+	}
+	now := time.Now().UTC()
+	record, err := s.verificationTokenRepo.FindActiveByHashPurpose(hashVerificationToken(token), "email_verify", now)
+	if err != nil {
+		if errors.Is(err, repository.ErrVerificationTokenNotFound) {
+			return ErrInvalidVerifyToken
+		}
+		return err
+	}
+	if err := s.verificationTokenRepo.ConsumeAndMarkEmailVerified(record.ID, record.UserID, now); err != nil {
+		if errors.Is(err, repository.ErrVerificationTokenNotFound) {
+			return ErrInvalidVerifyToken
+		}
+		return err
+	}
+	return nil
+}
+
 func (s *AuthService) ChangeLocalPassword(userID uint, currentPassword, newPassword string) error {
 	if !s.cfg.AuthLocalEnabled {
 		return ErrLocalAuthDisabled
@@ -276,4 +379,9 @@ func validatePassword(password string) error {
 		return ErrWeakPassword
 	}
 	return nil
+}
+
+func hashVerificationToken(raw string) string {
+	sum := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(sum[:])
 }

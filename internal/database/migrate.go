@@ -16,5 +16,6 @@ func Migrate(db *gorm.DB) error {
 		&domain.RolePermission{},
 		&domain.OAuthAccount{},
 		&domain.Session{},
+		&domain.VerificationToken{},
 	)
 }

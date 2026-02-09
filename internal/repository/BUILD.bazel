@@ -9,6 +9,7 @@ go_library(
         "role_repository.go",
         "session_repository.go",
         "user_repository.go",
+        "verification_token_repository.go",
     ],
     importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository",
     visibility = ["//:__subpackages__"],

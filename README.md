@@ -238,6 +238,9 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `APP_ENV` (default `development`)
 - `HTTP_PORT` (default `8080`)
 - `GOOGLE_OAUTH_REDIRECT_URL` (default callback URL)
+- `AUTH_LOCAL_REQUIRE_EMAIL_VERIFICATION` (default `false`)
+- `AUTH_EMAIL_VERIFY_TOKEN_TTL` (default `30m`)
+- `AUTH_EMAIL_VERIFY_BASE_URL` (optional frontend verify URL)
 - `BOOTSTRAP_ADMIN_EMAIL`
 - `AUTH_RATE_LIMIT_PER_MIN` (default `30`)
 - `API_RATE_LIMIT_PER_MIN` (default `120`)
@@ -302,6 +305,8 @@ Auth:
 - `GET /api/v1/auth/google/callback`
 - `POST /api/v1/auth/local/register`
 - `POST /api/v1/auth/local/login`
+- `POST /api/v1/auth/local/verify/request`
+- `POST /api/v1/auth/local/verify/confirm`
 - `POST /api/v1/auth/local/change-password` (auth + CSRF required)
 - `POST /api/v1/auth/refresh` (CSRF required)
 - `POST /api/v1/auth/logout` (auth + CSRF required)

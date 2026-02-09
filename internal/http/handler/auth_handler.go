@@ -258,6 +258,68 @@ func (h *AuthHandler) LocalLogin(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, r, http.StatusOK, map[string]any{"user": result.User, "csrf_token": result.CSRFToken, "expires_at": result.ExpiresAt})
 }
 
+func (h *AuthHandler) LocalVerifyRequest(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	status := "success"
+	defer func() {
+		observability.RecordAuthRequestDuration(r.Context(), "local_verify_request", status, time.Since(start))
+	}()
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = "failure"
+		observability.Audit(r, "auth.local.verify.request.failed", "reason", "invalid_payload")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
+		return
+	}
+	if err := h.authSvc.RequestLocalEmailVerification(req.Email); err != nil {
+		status = "failure"
+		observability.Audit(r, "auth.local.verify.request.failed", "reason", "service_error", "error", err.Error())
+		switch {
+		case errors.Is(err, service.ErrLocalAuthDisabled):
+			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
+		default:
+			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", err.Error(), nil)
+		}
+		return
+	}
+	observability.Audit(r, "auth.local.verify.request.accepted")
+	response.JSON(w, r, http.StatusAccepted, map[string]string{"status": "verification_requested"})
+}
+
+func (h *AuthHandler) LocalVerifyConfirm(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	status := "success"
+	defer func() {
+		observability.RecordAuthRequestDuration(r.Context(), "local_verify_confirm", status, time.Since(start))
+	}()
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = "failure"
+		observability.Audit(r, "auth.local.verify.confirm.failed", "reason", "invalid_payload")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
+		return
+	}
+	if err := h.authSvc.ConfirmLocalEmailVerification(req.Token); err != nil {
+		status = "failure"
+		observability.Audit(r, "auth.local.verify.confirm.failed", "reason", "service_error", "error", err.Error())
+		switch {
+		case errors.Is(err, service.ErrLocalAuthDisabled):
+			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
+		case errors.Is(err, service.ErrInvalidVerifyToken):
+			response.Error(w, r, http.StatusBadRequest, "INVALID_OR_EXPIRED_TOKEN", "invalid or expired token", nil)
+		default:
+			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", err.Error(), nil)
+		}
+		return
+	}
+	observability.Audit(r, "auth.local.verify.confirm.success")
+	response.JSON(w, r, http.StatusOK, map[string]string{"status": "email_verified"})
+}
+
 func (h *AuthHandler) LocalChangePassword(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"

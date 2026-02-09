@@ -526,6 +526,56 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
+  /auth/local/verify/request:
+    post:
+      tags: [Auth]
+      summary: Request local email verification token
+      operationId: authLocalVerifyRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202':
+          description: Verification request accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Envelope' }
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /auth/local/verify/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm local email verification token
+      operationId: authLocalVerifyConfirm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Envelope' }
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /auth/local/change-password:
     post:
       tags: [Auth]

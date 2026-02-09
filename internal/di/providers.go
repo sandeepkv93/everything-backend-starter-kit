@@ -44,6 +44,7 @@ var RepositorySet = wire.NewSet(
 	repository.NewSessionRepository,
 	repository.NewOAuthRepository,
 	repository.NewLocalCredentialRepository,
+	repository.NewVerificationTokenRepository,
 )
 
 var SecuritySet = wire.NewSet(
@@ -57,6 +58,8 @@ var ServiceSet = wire.NewSet(
 	provideSessionService,
 	provideTokenService,
 	service.NewGoogleOAuthProvider,
+	service.NewDevEmailVerificationNotifier,
+	wire.Bind(new(service.EmailVerificationNotifier), new(*service.DevEmailVerificationNotifier)),
 	wire.Bind(new(service.OAuthProvider), new(*service.GoogleOAuthProvider)),
 	service.NewOAuthService,
 	service.NewAuthService,

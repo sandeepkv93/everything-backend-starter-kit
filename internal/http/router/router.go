@@ -76,6 +76,8 @@ func NewRouter(dep Dependencies) http.Handler {
 			r.With(authLimiter).Get("/google/callback", dep.AuthHandler.GoogleCallback)
 			r.With(authLimiter).Post("/local/register", dep.AuthHandler.LocalRegister)
 			r.With(authLimiter).Post("/local/login", dep.AuthHandler.LocalLogin)
+			r.With(authLimiter).Post("/local/verify/request", dep.AuthHandler.LocalVerifyRequest)
+			r.With(authLimiter).Post("/local/verify/confirm", dep.AuthHandler.LocalVerifyConfirm)
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.CSRFMiddleware)
 				r.With(authLimiter).Post("/refresh", dep.AuthHandler.Refresh)
