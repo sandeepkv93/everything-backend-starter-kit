@@ -1,127 +1,18 @@
 version: '3'
 
-tasks:
-  run:
-    cmds:
-      - go run ./cmd/api
-
-  bazel:build:
-    cmds:
-      - bazelisk build //...
-
-  bazel:test:
-    cmds:
-      - |
-        bash -ec '
-          tests="$(bazelisk query "tests(//...)")"
-          if [ -z "$tests" ]; then
-            echo "No Bazel test targets; skipping."
-            exit 0
-          fi
-          printf "%s\n" "$tests" | xargs bazelisk test
-        '
-
-  bazel:run:
-    cmds:
-      - bazelisk run //cmd/api:api
-
-  gazelle:
-    cmds:
-      - bazelisk run //:gazelle
-
-  gazelle:check:
-    cmds:
-      - task gazelle
-      - |
-        bash -ec '
-          files="$(find . -name BUILD.bazel -type f | tr "\n" " ")"
-          if [ -n "$files" ]; then
-            # shellcheck disable=SC2086
-            git diff --exit-code -- $files
-          fi
-        '
-
-  migrate:
-    cmds:
-      - go run ./cmd/migrate up
-
-  migrate:status:
-    cmds:
-      - go run ./cmd/migrate status
-
-  migrate:plan:
-    cmds:
-      - go run ./cmd/migrate plan
-
-  seed:
-    cmds:
-      - go run ./cmd/seed apply
-
-  seed:dry-run:
-    cmds:
-      - go run ./cmd/seed dry-run
-
-  wire:
-    cmds:
-      - go run -mod=mod github.com/google/wire/cmd/wire ./internal/di
-
-  wire-check:
-    cmds:
-      - task wire
-      - GOTOOLCHAIN=go1.24.11 go mod tidy
-      - git diff --exit-code internal/di/wire_gen.go go.mod go.sum
-
-  tidy-check:
-    cmds:
-      - GOTOOLCHAIN=go1.24.11 go mod tidy
-      - git diff --exit-code go.mod go.sum
-
-  test:
-    cmds:
-      - go test ./...
-
-  lint:
-    cmds:
-      - go vet ./...
-
-  cli:smoke:
-    cmds:
-      - go run ./cmd/migrate --help >/dev/null
-      - go run ./cmd/seed --help >/dev/null
-      - go run ./cmd/loadgen --help >/dev/null
-      - go run ./cmd/obscheck --help >/dev/null
-
+includes:
+  bazel:
+    taskfile: ./taskfiles/bazel.yaml
+    flatten: true
+  go:
+    taskfile: ./taskfiles/go.yaml
+    flatten: true
+  app:
+    taskfile: ./taskfiles/app.yaml
+    flatten: true
+  obs:
+    taskfile: ./taskfiles/obs.yaml
+    flatten: true
   ci:
-    cmds:
-      - task bazel:build
-      - task bazel:test
-      - task gazelle:check
-      - task tidy-check
-      - task wire-check
-      - task cli:smoke
-
-  hooks-install:
-    cmds:
-      - git config core.hooksPath .githooks
-      - chmod +x .githooks/pre-commit .githooks/pre-push
-
-  docker-up:
-    cmds:
-      - docker compose up --build -d
-
-  docker-down:
-    cmds:
-      - docker compose down -v
-
-  openapi-validate:
-    cmds:
-      - test -f api/openapi.yaml
-      - echo "OpenAPI file exists at api/openapi.yaml"
-
-  obs-generate-traffic:
-    cmds:
-      - go run ./cmd/loadgen run --duration 10s --profile mixed
-
-  obs-validate:
-    cmds:
-      - go run ./cmd/obscheck run
+    taskfile: ./taskfiles/ci.yaml
+    flatten: true

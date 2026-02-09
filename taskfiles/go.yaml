@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  wire:
+    cmds:
+      - go run -mod=mod github.com/google/wire/cmd/wire ./internal/di
+
+  wire-check:
+    cmds:
+      - task wire
+      - GOTOOLCHAIN=go1.24.11 go mod tidy
+      - git diff --exit-code internal/di/wire_gen.go go.mod go.sum
+
+  tidy-check:
+    cmds:
+      - GOTOOLCHAIN=go1.24.11 go mod tidy
+      - git diff --exit-code go.mod go.sum
+
+  test:
+    cmds:
+      - go test ./...
+
+  lint:
+    cmds:
+      - go vet ./...
+
+  cli:smoke:
+    cmds:
+      - go run ./cmd/migrate --help >/dev/null
+      - go run ./cmd/seed --help >/dev/null
+      - go run ./cmd/loadgen --help >/dev/null
+      - go run ./cmd/obscheck --help >/dev/null

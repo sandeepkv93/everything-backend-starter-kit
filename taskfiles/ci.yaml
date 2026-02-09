@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  ci:
+    cmds:
+      - task bazel:build
+      - task bazel:test
+      - task gazelle:check
+      - task tidy-check
+      - task wire-check
+      - task cli:smoke

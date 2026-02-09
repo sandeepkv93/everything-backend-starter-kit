@@ -11,6 +11,19 @@ REST API service in Go with Google OAuth login, JWT auth, secure cookie sessions
 - [Bazelisk](https://github.com/bazelbuild/bazelisk) (Bazel-first build/test)
 - Docker (optional for local stack)
 
+## Taskfile Layout
+- Root loader: `Taskfile.yaml`
+- Modular task definitions:
+  - `taskfiles/bazel.yaml`
+  - `taskfiles/go.yaml`
+  - `taskfiles/app.yaml`
+  - `taskfiles/obs.yaml`
+  - `taskfiles/ci.yaml`
+- Existing commands remain the same, for example:
+  - `task ci`
+  - `task bazel:build`
+  - `task migrate`
+
 ## Setup
 1. Copy env file:
    - `cp .env.example .env`

@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  bazel:build:
+    cmds:
+      - bazelisk build //...
+
+  bazel:test:
+    cmds:
+      - |
+        bash -ec '
+          tests="$(bazelisk query "tests(//...)")"
+          if [ -z "$tests" ]; then
+            echo "No Bazel test targets; skipping."
+            exit 0
+          fi
+          printf "%s\n" "$tests" | xargs bazelisk test
+        '
+
+  bazel:run:
+    cmds:
+      - bazelisk run //cmd/api:api
+
+  gazelle:
+    cmds:
+      - bazelisk run //:gazelle
+
+  gazelle:check:
+    cmds:
+      - task gazelle
+      - |
+        bash -ec '
+          files="$(find . -name BUILD.bazel -type f | tr "\n" " ")"
+          if [ -n "$files" ]; then
+            # shellcheck disable=SC2086
+            git diff --exit-code -- $files
+          fi
+        '

@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  obs-generate-traffic:
+    cmds:
+      - go run ./cmd/loadgen run --duration 10s --profile mixed
+
+  obs-validate:
+    cmds:
+      - go run ./cmd/obscheck run
