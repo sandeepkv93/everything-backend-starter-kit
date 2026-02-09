@@ -420,6 +420,7 @@ OpenAPI spec:
 - Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).
 - Admin list endpoints (`/admin/users`, `/admin/roles`, `/admin/permissions`) use read-through Redis cache with actor-scoped query keys and short TTL.
 - RBAC/admin mutations invalidate affected admin list cache namespaces to prevent stale list responses.
+- `GET /api/v1/admin/roles` and `GET /api/v1/admin/permissions` also support conditional HTTP caching with `ETag` and `If-None-Match` (`304 Not Modified` on match).
 
 ## Admin List Cache Policy
 
@@ -434,6 +435,9 @@ OpenAPI spec:
   - `POST/PATCH/DELETE /admin/roles/{id?}` -> `admin.roles.list`, `admin.users.list`
   - `POST/PATCH/DELETE /admin/permissions/{id?}` -> `admin.permissions.list`, `admin.roles.list`
   - `POST /admin/rbac/sync` -> all three namespaces
+- HTTP conditional caching:
+  - `GET /admin/roles` and `GET /admin/permissions` return `ETag` and `Cache-Control: private, no-cache`
+  - Clients may send `If-None-Match`; unchanged payloads return `304 Not Modified`
 
 ## RBAC Permission Cache Policy
 

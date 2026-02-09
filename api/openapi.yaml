@@ -1194,9 +1194,21 @@ paths:
         - in: query
           name: name
           schema: { type: string }
+        - in: header
+          name: If-None-Match
+          required: false
+          schema: { type: string }
+          description: Conditional request ETag previously returned by this endpoint.
       responses:
         '200':
           description: Roles returned
+          headers:
+            ETag:
+              description: Strong validator for the role list payload.
+              schema: { type: string }
+            Cache-Control:
+              description: Private conditional-cache directive.
+              schema: { type: string, example: private, no-cache }
           content:
             application/json:
               schema:
@@ -1231,6 +1243,15 @@ paths:
                     meta:
                       request_id: req-abc123
                       timestamp: "2026-02-09T10:00:00Z"
+        '304':
+          description: Not Modified (If-None-Match matched current ETag)
+          headers:
+            ETag:
+              description: Current entity tag for the resource.
+              schema: { type: string }
+            Cache-Control:
+              description: Private conditional-cache directive.
+              schema: { type: string, example: private, no-cache }
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -1344,9 +1365,21 @@ paths:
         - in: query
           name: action
           schema: { type: string }
+        - in: header
+          name: If-None-Match
+          required: false
+          schema: { type: string }
+          description: Conditional request ETag previously returned by this endpoint.
       responses:
         '200':
           description: Permissions returned
+          headers:
+            ETag:
+              description: Strong validator for the permission list payload.
+              schema: { type: string }
+            Cache-Control:
+              description: Private conditional-cache directive.
+              schema: { type: string, example: private, no-cache }
           content:
             application/json:
               schema:
@@ -1375,6 +1408,15 @@ paths:
                     meta:
                       request_id: req-abc123
                       timestamp: "2026-02-09T10:00:00Z"
+        '304':
+          description: Not Modified (If-None-Match matched current ETag)
+          headers:
+            ETag:
+              description: Current entity tag for the resource.
+              schema: { type: string }
+            Cache-Control:
+              description: Private conditional-cache directive.
+              schema: { type: string, example: private, no-cache }
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':

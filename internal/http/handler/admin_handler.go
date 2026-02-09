@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -169,7 +170,7 @@ func (h *AdminHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
 	cacheNamespace := "admin.roles.list"
 	cacheKey := h.adminListCacheKey(r, cacheNamespace)
 	if cachedData, ok := h.readAdminListCache(r, cacheNamespace, cacheKey); ok {
-		response.JSON(w, r, http.StatusOK, cachedData)
+		h.respondAdminListWithConditionalETag(w, r, cacheNamespace, nil, cachedData)
 		return
 	}
 
@@ -197,7 +198,7 @@ func (h *AdminHandler) ListRoles(w http.ResponseWriter, r *http.Request) {
 	}
 	payload := paginatedData(rolesPage.Items, rolesPage.Page, rolesPage.PageSize, rolesPage.Total, rolesPage.TotalPages)
 	h.writeAdminListCache(r, cacheNamespace, cacheKey, payload)
-	response.JSON(w, r, http.StatusOK, payload)
+	h.respondAdminListWithConditionalETag(w, r, cacheNamespace, payload, nil)
 }
 
 func (h *AdminHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
@@ -424,7 +425,7 @@ func (h *AdminHandler) ListPermissions(w http.ResponseWriter, r *http.Request) {
 	cacheNamespace := "admin.permissions.list"
 	cacheKey := h.adminListCacheKey(r, cacheNamespace)
 	if cachedData, ok := h.readAdminListCache(r, cacheNamespace, cacheKey); ok {
-		response.JSON(w, r, http.StatusOK, cachedData)
+		h.respondAdminListWithConditionalETag(w, r, cacheNamespace, nil, cachedData)
 		return
 	}
 
@@ -454,7 +455,7 @@ func (h *AdminHandler) ListPermissions(w http.ResponseWriter, r *http.Request) {
 	}
 	payload := paginatedData(permsPage.Items, permsPage.Page, permsPage.PageSize, permsPage.Total, permsPage.TotalPages)
 	h.writeAdminListCache(r, cacheNamespace, cacheKey, payload)
-	response.JSON(w, r, http.StatusOK, payload)
+	h.respondAdminListWithConditionalETag(w, r, cacheNamespace, payload, nil)
 }
 
 func (h *AdminHandler) CreatePermission(w http.ResponseWriter, r *http.Request) {
@@ -990,4 +991,59 @@ func normalizeQueryValues(values url.Values) string {
 		clone[k] = c
 	}
 	return clone.Encode()
+}
+
+func (h *AdminHandler) respondAdminListWithConditionalETag(w http.ResponseWriter, r *http.Request, namespace string, payload any, encodedPayload []byte) {
+	encoded := encodedPayload
+	if len(encoded) == 0 {
+		var err error
+		encoded, err = json.Marshal(payload)
+		if err != nil {
+			observability.RecordAdminListCacheEvent(r.Context(), namespace, "encode_error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to encode response", nil)
+			return
+		}
+	}
+
+	etag := buildStrongETag(encoded)
+	w.Header().Set("Cache-Control", "private, no-cache")
+	w.Header().Set("ETag", etag)
+	if matchesIfNoneMatch(r.Header.Get("If-None-Match"), etag) {
+		observability.RecordAdminListCacheEvent(r.Context(), namespace, "etag_not_modified")
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	observability.RecordAdminListCacheEvent(r.Context(), namespace, "etag_ok")
+	if payload != nil {
+		response.JSON(w, r, http.StatusOK, payload)
+		return
+	}
+	response.JSON(w, r, http.StatusOK, json.RawMessage(encoded))
+}
+
+func buildStrongETag(payload []byte) string {
+	sum := sha256.Sum256(payload)
+	return fmt.Sprintf("\"%x\"", sum[:])
+}
+
+func matchesIfNoneMatch(rawHeader, currentETag string) bool {
+	if strings.TrimSpace(rawHeader) == "" {
+		return false
+	}
+	for _, token := range strings.Split(rawHeader, ",") {
+		candidate := strings.TrimSpace(token)
+		if candidate == "" {
+			continue
+		}
+		if candidate == "*" {
+			return true
+		}
+		candidate = strings.TrimPrefix(candidate, "W/")
+		candidate = strings.TrimSpace(candidate)
+		if candidate == currentETag {
+			return true
+		}
+	}
+	return false
 }

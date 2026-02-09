@@ -116,3 +116,117 @@ func TestAdminListRolesReadThroughCacheAndInvalidation(t *testing.T) {
 		t.Fatalf("expected cache repopulation after invalidation, before=%d after=%d", setCalls2, setCalls3)
 	}
 }
+
+func TestAdminListConditionalETagForRolesAndPermissions(t *testing.T) {
+	baseURL, adminClient, closeFn := newAuthTestServerWithOptions(t, authTestServerOptions{
+		cfgOverride: func(cfg *config.Config) {
+			cfg.BootstrapAdminEmail = "admin-etag@example.com"
+		},
+	})
+	defer closeFn()
+
+	registerAndLogin(t, adminClient, baseURL, "admin-etag@example.com", "Valid#Pass1234")
+
+	// Seed one role and one permission.
+	resp, env := doJSON(t, adminClient, http.MethodPost, baseURL+"/api/v1/admin/roles", map[string]any{
+		"name":        "etag-role-a",
+		"description": "etag role",
+		"permissions": []string{"users:read"},
+	}, nil)
+	if resp.StatusCode != http.StatusCreated || !env.Success {
+		t.Fatalf("create etag role failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+	resp, env = doJSON(t, adminClient, http.MethodPost, baseURL+"/api/v1/admin/permissions", map[string]any{
+		"resource": "etag_resource",
+		"action":   "read_a",
+	}, nil)
+	if resp.StatusCode != http.StatusCreated || !env.Success {
+		t.Fatalf("create etag permission failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+
+	rolesURL := baseURL + "/api/v1/admin/roles?name=etag-role-&sort_by=name&sort_order=asc&page=1&page_size=10"
+	permsURL := baseURL + "/api/v1/admin/permissions?resource=etag_resource&sort_by=action&sort_order=asc&page=1&page_size=10"
+
+	// Roles: first response should include ETag, second with If-None-Match should be 304.
+	resp, env = doJSON(t, adminClient, http.MethodGet, rolesURL, nil, nil)
+	if resp.StatusCode != http.StatusOK || !env.Success {
+		t.Fatalf("initial roles list failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+	roleETag := resp.Header.Get("ETag")
+	if roleETag == "" {
+		t.Fatal("expected roles ETag header")
+	}
+	if got := resp.Header.Get("Cache-Control"); got != "private, no-cache" {
+		t.Fatalf("unexpected roles cache-control: %q", got)
+	}
+
+	resp, _ = doJSON(t, adminClient, http.MethodGet, rolesURL, nil, map[string]string{
+		"If-None-Match": roleETag,
+	})
+	if resp.StatusCode != http.StatusNotModified {
+		t.Fatalf("expected 304 for roles If-None-Match, got %d", resp.StatusCode)
+	}
+	if resp.Header.Get("ETag") != roleETag {
+		t.Fatalf("expected same roles ETag on 304 response")
+	}
+
+	// Mutate roles and ensure the old ETag no longer matches.
+	resp, env = doJSON(t, adminClient, http.MethodPost, baseURL+"/api/v1/admin/roles", map[string]any{
+		"name":        "etag-role-b",
+		"description": "etag role",
+		"permissions": []string{"users:read"},
+	}, nil)
+	if resp.StatusCode != http.StatusCreated || !env.Success {
+		t.Fatalf("create second etag role failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+	resp, env = doJSON(t, adminClient, http.MethodGet, rolesURL, nil, map[string]string{
+		"If-None-Match": roleETag,
+	})
+	if resp.StatusCode != http.StatusOK || !env.Success {
+		t.Fatalf("expected 200 roles after mutation with stale If-None-Match, got %d", resp.StatusCode)
+	}
+	if updated := resp.Header.Get("ETag"); updated == "" || updated == roleETag {
+		t.Fatalf("expected changed roles ETag after mutation, old=%q new=%q", roleETag, updated)
+	}
+
+	// Permissions: first response should include ETag, second with If-None-Match should be 304.
+	resp, env = doJSON(t, adminClient, http.MethodGet, permsURL, nil, nil)
+	if resp.StatusCode != http.StatusOK || !env.Success {
+		t.Fatalf("initial permissions list failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+	permETag := resp.Header.Get("ETag")
+	if permETag == "" {
+		t.Fatal("expected permissions ETag header")
+	}
+	if got := resp.Header.Get("Cache-Control"); got != "private, no-cache" {
+		t.Fatalf("unexpected permissions cache-control: %q", got)
+	}
+
+	resp, _ = doJSON(t, adminClient, http.MethodGet, permsURL, nil, map[string]string{
+		"If-None-Match": permETag,
+	})
+	if resp.StatusCode != http.StatusNotModified {
+		t.Fatalf("expected 304 for permissions If-None-Match, got %d", resp.StatusCode)
+	}
+	if resp.Header.Get("ETag") != permETag {
+		t.Fatalf("expected same permissions ETag on 304 response")
+	}
+
+	// Mutate permissions and ensure stale ETag yields fresh payload.
+	resp, env = doJSON(t, adminClient, http.MethodPost, baseURL+"/api/v1/admin/permissions", map[string]any{
+		"resource": "etag_resource",
+		"action":   "read_b",
+	}, nil)
+	if resp.StatusCode != http.StatusCreated || !env.Success {
+		t.Fatalf("create second etag permission failed: status=%d success=%v", resp.StatusCode, env.Success)
+	}
+	resp, env = doJSON(t, adminClient, http.MethodGet, permsURL, nil, map[string]string{
+		"If-None-Match": permETag,
+	})
+	if resp.StatusCode != http.StatusOK || !env.Success {
+		t.Fatalf("expected 200 permissions after mutation with stale If-None-Match, got %d", resp.StatusCode)
+	}
+	if updated := resp.Header.Get("ETag"); updated == "" || updated == permETag {
+		t.Fatalf("expected changed permissions ETag after mutation, old=%q new=%q", permETag, updated)
+	}
+}
