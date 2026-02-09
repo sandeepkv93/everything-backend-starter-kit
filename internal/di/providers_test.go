@@ -3,8 +3,11 @@ package di
 import (
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/router"
@@ -24,7 +27,7 @@ func TestProvideHTTPServer(t *testing.T) {
 
 func TestProvideRouterDependencies(t *testing.T) {
 	cfg := &config.Config{CORSAllowedOrigins: []string{"http://localhost:3000"}, AuthRateLimitPerMin: 10, APIRateLimitPerMin: 100, OTELMetricsEnabled: true}
-	dep := provideRouterDependencies(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, cfg)
+	dep := provideRouterDependencies(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, cfg)
 	if dep.AuthRateLimitRPM != 10 || dep.APIRateLimitRPM != 100 {
 		t.Fatalf("unexpected rate limits: %+v", dep)
 	}
@@ -35,6 +38,43 @@ func TestProvideRouterDependencies(t *testing.T) {
 		t.Fatalf("unexpected cors origins: %+v", dep.CORSOrigins)
 	}
 	_ = router.Dependencies(dep)
+}
+
+func TestProvideForgotRateLimiterFallback(t *testing.T) {
+	cfg := &config.Config{
+		RateLimitRedisEnabled:             false,
+		AuthPasswordForgotRateLimitPerMin: 5,
+	}
+	mw := provideForgotRateLimiter(cfg, nil)
+	if mw == nil {
+		t.Fatal("expected forgot rate limiter middleware")
+	}
+}
+
+func TestProvideForgotRateLimiterRedisFailClosed(t *testing.T) {
+	cfg := &config.Config{
+		RateLimitRedisEnabled:             true,
+		RateLimitRedisPrefix:              "rl",
+		AuthPasswordForgotRateLimitPerMin: 5,
+	}
+	client := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
+	mw := provideForgotRateLimiter(cfg, client)
+	if mw == nil {
+		t.Fatal("expected forgot rate limiter middleware")
+	}
+	h := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/local/password/forgot", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.RemoteAddr = "10.0.0.1:1234"
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected fail-closed response when redis unavailable, got %d", rr.Code)
+	}
 }
 
 func TestProvideApp(t *testing.T) {

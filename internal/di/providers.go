@@ -80,6 +80,7 @@ var HTTPSet = wire.NewSet(
 	handler.NewAdminHandler,
 	provideGlobalRateLimiter,
 	provideAuthRateLimiter,
+	provideForgotRateLimiter,
 	provideIdempotencyStore,
 	provideIdempotencyMiddlewareFactory,
 	provideRouterDependencies,
@@ -253,6 +254,20 @@ func provideAuthRateLimiter(cfg *config.Config, redisClient redis.UniversalClien
 	return middleware.NewRateLimiter(cfg.AuthRateLimitPerMin, time.Minute).Middleware()
 }
 
+func provideForgotRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.AuthRateLimiterFunc {
+	if cfg.RateLimitRedisEnabled && redisClient != nil {
+		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth:forgot")
+		return middleware.NewDistributedRateLimiter(
+			redisLimiter,
+			cfg.AuthPasswordForgotRateLimitPerMin,
+			time.Minute,
+			middleware.FailClosed,
+			"auth_password_forgot",
+		).Middleware()
+	}
+	return middleware.NewRateLimiter(cfg.AuthPasswordForgotRateLimitPerMin, time.Minute).Middleware()
+}
+
 func provideRouterDependencies(
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
@@ -262,6 +277,7 @@ func provideRouterDependencies(
 	permissionResolver service.PermissionResolver,
 	globalRateLimiter router.GlobalRateLimiterFunc,
 	authRateLimiter router.AuthRateLimiterFunc,
+	forgotRateLimiter router.AuthRateLimiterFunc,
 	idempotencyFactory router.IdempotencyMiddlewareFactory,
 	readiness *health.ProbeRunner,
 	cfg *config.Config,
@@ -279,6 +295,7 @@ func provideRouterDependencies(
 		APIRateLimitRPM:            cfg.APIRateLimitPerMin,
 		GlobalRateLimiter:          globalRateLimiter,
 		AuthRateLimiter:            authRateLimiter,
+		ForgotRateLimiter:          forgotRateLimiter,
 		Idempotency:                idempotencyFactory,
 		Readiness:                  readiness,
 		EnableOTelHTTP:             cfg.OTELMetricsEnabled || cfg.OTELTracingEnabled,

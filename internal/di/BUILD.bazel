@@ -34,5 +34,6 @@ go_test(
         "//internal/config",
         "//internal/http/router",
         "//internal/observability",
+        "@com_github_redis_go_redis_v9//:go-redis",
     ],
 )

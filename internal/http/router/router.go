@@ -29,6 +29,7 @@ type Dependencies struct {
 	APIRateLimitRPM            int
 	GlobalRateLimiter          GlobalRateLimiterFunc
 	AuthRateLimiter            AuthRateLimiterFunc
+	ForgotRateLimiter          AuthRateLimiterFunc
 	Idempotency                IdempotencyMiddlewareFactory
 	Readiness                  *health.ProbeRunner
 	EnableOTelHTTP             bool
@@ -57,7 +58,10 @@ func NewRouter(dep Dependencies) http.Handler {
 	if authLimiter == nil {
 		authLimiter = middleware.NewRateLimiter(dep.AuthRateLimitRPM, time.Minute).Middleware()
 	}
-	forgotLimiter := middleware.NewRateLimiter(dep.PasswordForgotRateLimitRPM, time.Minute).Middleware()
+	forgotLimiter := dep.ForgotRateLimiter
+	if forgotLimiter == nil {
+		forgotLimiter = middleware.NewRateLimiter(dep.PasswordForgotRateLimitRPM, time.Minute).Middleware()
+	}
 
 	r.Get("/health/live", func(w http.ResponseWriter, r *http.Request) {
 		response.JSON(w, r, http.StatusOK, map[string]string{"status": "ok"})
