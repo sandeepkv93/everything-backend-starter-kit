@@ -20,6 +20,10 @@ tasks:
     cmds:
       - go test ./...
 
+  test:auth-lifecycle:
+    cmds:
+      - go test ./test/integration -run TestAuthLifecycle -v
+
   lint:
     cmds:
       - go vet ./...

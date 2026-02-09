@@ -162,6 +162,19 @@ Your command surface stays simple, for example:
 - `task bazel:build`
 - `task migrate`
 - `task obs-validate`
+- `task test:auth-lifecycle`
+
+## Auth Lifecycle Integration Tests
+
+The repo now includes end-to-end auth lifecycle integration coverage in `test/integration/auth_lifecycle_test.go`.
+
+Run only lifecycle tests:
+
+- `task test:auth-lifecycle`
+
+Run all tests:
+
+- `task test`
 
 ## Quickstart
 
