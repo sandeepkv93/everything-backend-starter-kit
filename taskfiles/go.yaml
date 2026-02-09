@@ -49,6 +49,10 @@ tasks:
     cmds:
       - go test ./test/integration -run TestAdminList -v
 
+  test:admin-list-cache:
+    cmds:
+      - go test ./test/integration -run TestAdminListRolesReadThroughCacheAndInvalidation -v
+
   test:problem-details:
     cmds:
       - go test ./test/integration -run TestProblemDetails -v

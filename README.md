@@ -213,6 +213,7 @@ Your command surface stays simple, for example:
 - `task test:password-reset`
 - `task test:admin-rbac-write`
 - `task test:admin-list`
+- `task test:admin-list-cache`
 - `task test:problem-details`
 - `task test:idempotency`
 - `task test:audit`
@@ -431,6 +432,8 @@ OpenAPI spec:
 - `event_name,event_version,actor_user_id,actor_ip,target_type,target_id,action,outcome,reason,request_id,trace_id,span_id,ts`
 - Event catalog and query examples are documented in:
 - `docs/audit-taxonomy.md`
+- Cache flow and architecture diagrams are in:
+- `docs/diagrams.md`
 
 ## Error Negotiation
 

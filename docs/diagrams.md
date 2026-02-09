@@ -189,6 +189,34 @@ sequenceDiagram
 
 Source: `docs/diagrams/admin-list-query-flow.mmd`
 
+## Admin List Read-Through Cache Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Admin Client
+    participant API as Admin Handler
+    participant C as Admin List Cache (Redis)
+    participant DB as PostgreSQL
+
+    A->>API: GET /api/v1/admin/roles?...
+    API->>C: Get(namespace=admin.roles.list,key=actor+query)
+    alt cache hit
+        C-->>API: cached JSON payload
+        API-->>A: 200 cached response
+    else cache miss
+        API->>DB: ListPaged(query)
+        DB-->>API: items + pagination
+        API->>C: Set(namespace,key,payload,ttl=ADMIN_LIST_CACHE_TTL)
+        API-->>A: 200 fresh response
+    end
+
+    A->>API: POST/PATCH/DELETE admin RBAC mutation
+    API->>C: InvalidateNamespace(affected namespaces)
+    API-->>A: mutation response
+```
+
+Source: `docs/diagrams/admin-list-cache-flow.mmd`
+
 ## Error Negotiation Flow (Envelope vs RFC7807)
 
 ```mermaid
