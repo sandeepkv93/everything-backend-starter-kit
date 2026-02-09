@@ -145,6 +145,32 @@ sequenceDiagram
 
 Source: `docs/diagrams/rbac-admin-flow.mmd`
 
+## Idempotency Key Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as API + Idempotency MW
+    participant S as Store (Redis/DB)
+    participant H as Handler
+
+    C->>API: POST/PATCH with Idempotency-Key
+    API->>S: Begin(scope,key,fingerprint)
+    alt state=new
+        API->>H: Execute handler once
+        H-->>API: status + body
+        API->>S: Complete(scope,key,fingerprint,response)
+        API-->>C: Original response
+    else state=replay
+        S-->>API: Cached status + body
+        API-->>C: Replayed response (X-Idempotency-Replayed: true)
+    else state=conflict
+        API-->>C: 409 CONFLICT
+    end
+```
+
+Source: `docs/diagrams/idempotency-flow.mmd`
+
 ## Admin List Pagination and Filtering Flow
 
 ```mermaid

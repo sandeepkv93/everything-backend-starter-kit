@@ -45,6 +45,10 @@ type Config struct {
 	AuthRateLimitPerMin          int
 	APIRateLimitPerMin           int
 	RateLimitRedisEnabled        bool
+	IdempotencyEnabled           bool
+	IdempotencyRedisEnabled      bool
+	IdempotencyTTL               time.Duration
+	IdempotencyRedisPrefix       string
 	RedisAddr                    string
 	RedisPassword                string
 	RedisDB                      int
@@ -106,10 +110,13 @@ func Load() (*Config, error) {
 		AuthRateLimitPerMin:               getEnvInt("AUTH_RATE_LIMIT_PER_MIN", 30),
 		APIRateLimitPerMin:                getEnvInt("API_RATE_LIMIT_PER_MIN", 120),
 		RateLimitRedisEnabled:             getEnvBool("RATE_LIMIT_REDIS_ENABLED", true),
+		IdempotencyEnabled:                getEnvBool("IDEMPOTENCY_ENABLED", true),
+		IdempotencyRedisEnabled:           getEnvBool("IDEMPOTENCY_REDIS_ENABLED", true),
 		RedisAddr:                         getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword:                     os.Getenv("REDIS_PASSWORD"),
 		RedisDB:                           getEnvInt("REDIS_DB", 0),
 		RateLimitRedisPrefix:              getEnv("RATE_LIMIT_REDIS_PREFIX", "rl"),
+		IdempotencyRedisPrefix:            getEnv("IDEMPOTENCY_REDIS_PREFIX", "idem"),
 
 		OTELServiceName:          getEnv("OTEL_SERVICE_NAME", "secure-observable-go-backend-starter-kit"),
 		OTELEnvironment:          getEnv("OTEL_ENVIRONMENT", env),
@@ -157,6 +164,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parse READINESS_PROBE_TIMEOUT: %w", err)
 	}
 	cfg.ReadinessProbeTimeout = readinessTimeout
+
+	idempotencyTTL, err := time.ParseDuration(getEnv("IDEMPOTENCY_TTL", "24h"))
+	if err != nil {
+		return nil, fmt.Errorf("parse IDEMPOTENCY_TTL: %w", err)
+	}
+	cfg.IdempotencyTTL = idempotencyTTL
 
 	startGrace, err := time.ParseDuration(getEnv("SERVER_START_GRACE_PERIOD", "2s"))
 	if err != nil {
@@ -248,8 +261,11 @@ func (c *Config) Validate() error {
 	if c.APIRateLimitPerMin <= 0 {
 		errs = append(errs, "API_RATE_LIMIT_PER_MIN must be > 0")
 	}
-	if c.RateLimitRedisEnabled && strings.TrimSpace(c.RedisAddr) == "" {
-		errs = append(errs, "REDIS_ADDR is required when RATE_LIMIT_REDIS_ENABLED=true")
+	if c.IdempotencyTTL <= 0 || c.IdempotencyTTL > (7*24*time.Hour) {
+		errs = append(errs, "IDEMPOTENCY_TTL must be between 1s and 168h")
+	}
+	if (c.RateLimitRedisEnabled || (c.IdempotencyEnabled && c.IdempotencyRedisEnabled)) && strings.TrimSpace(c.RedisAddr) == "" {
+		errs = append(errs, "REDIS_ADDR is required when Redis-backed features are enabled")
 	}
 	if c.ReadinessProbeTimeout <= 0 {
 		errs = append(errs, "READINESS_PROBE_TIMEOUT must be > 0")

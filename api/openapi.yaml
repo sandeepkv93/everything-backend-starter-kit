@@ -15,6 +15,17 @@ components:
       type: apiKey
       in: cookie
       name: access_token
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      description: Unique request key used to deduplicate retried mutating requests.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      example: 8f08db4b-3173-42f8-9bc2-c97d2229b3cb
   schemas:
     Meta:
       type: object
@@ -584,6 +595,25 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+    ConflictError:
+      description: Request conflicts with existing state (for example, idempotency key replay mismatch).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            conflict:
+              value:
+                success: false
+                error:
+                  code: CONFLICT
+                  message: idempotency key reuse with different payload
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
     UnauthorizedError:
       description: Authentication failed or access token is missing/invalid.
       content:
@@ -698,6 +728,8 @@ paths:
       tags: [Auth]
       summary: Register local email/password account
       operationId: authLocalRegister
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -717,6 +749,8 @@ paths:
               schema: { $ref: '#/components/schemas/Envelope' }
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /auth/local/login:
     post:
@@ -799,6 +833,8 @@ paths:
       tags: [Auth]
       summary: Request local password reset token
       operationId: authLocalPasswordForgot
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -816,6 +852,8 @@ paths:
               schema: { $ref: '#/components/schemas/Envelope' }
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '404':
           $ref: '#/components/responses/NotFoundError'
 
@@ -1090,6 +1128,7 @@ paths:
             type: integer
             format: uint64
             minimum: 1
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -1123,6 +1162,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1204,6 +1245,8 @@ paths:
       operationId: adminCreateRole
       security:
         - accessTokenCookie: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -1266,6 +1309,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalError'
 

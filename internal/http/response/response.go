@@ -125,6 +125,8 @@ func problemTitle(code string, status int) string {
 		return "Unauthorized"
 	case "FORBIDDEN":
 		return "Forbidden"
+	case "CONFLICT":
+		return "Conflict"
 	case "NOT_FOUND":
 		return "Not Found"
 	case "INTERNAL":

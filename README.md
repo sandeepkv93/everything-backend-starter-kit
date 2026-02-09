@@ -298,7 +298,11 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `AUTH_RATE_LIMIT_PER_MIN` (default `30`)
 - `API_RATE_LIMIT_PER_MIN` (default `120`)
 - `RATE_LIMIT_REDIS_ENABLED` (default `true`)
+- `IDEMPOTENCY_ENABLED` (default `true`)
+- `IDEMPOTENCY_REDIS_ENABLED` (default `true`, falls back to DB store when disabled)
+- `IDEMPOTENCY_TTL` (default `24h`)
 - `REDIS_ADDR`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`
+- `IDEMPOTENCY_REDIS_PREFIX` (default `idem`)
 - `READINESS_PROBE_TIMEOUT` (default `1s`)
 - `SERVER_START_GRACE_PERIOD` (default `2s`)
 - `SHUTDOWN_TIMEOUT` (default `20s`)
@@ -356,11 +360,11 @@ Auth:
 
 - `GET /api/v1/auth/google/login`
 - `GET /api/v1/auth/google/callback`
-- `POST /api/v1/auth/local/register`
+- `POST /api/v1/auth/local/register` (requires `Idempotency-Key`)
 - `POST /api/v1/auth/local/login`
 - `POST /api/v1/auth/local/verify/request`
 - `POST /api/v1/auth/local/verify/confirm`
-- `POST /api/v1/auth/local/password/forgot`
+- `POST /api/v1/auth/local/password/forgot` (requires `Idempotency-Key`)
 - `POST /api/v1/auth/local/password/reset`
 - `POST /api/v1/auth/local/change-password` (auth + CSRF required)
 - `POST /api/v1/auth/refresh` (CSRF required)
@@ -376,9 +380,9 @@ User:
 Admin (auth + permission checks):
 
 - `GET /api/v1/admin/users` (`users:read`, supports `page,page_size,sort_by,sort_order,email,status,role`)
-- `PATCH /api/v1/admin/users/{id}/roles` (`users:write`)
+- `PATCH /api/v1/admin/users/{id}/roles` (`users:write`, requires `Idempotency-Key`)
 - `GET /api/v1/admin/roles` (`roles:read`, supports `page,page_size,sort_by,sort_order,name`)
-- `POST /api/v1/admin/roles` (`roles:write`)
+- `POST /api/v1/admin/roles` (`roles:write`, requires `Idempotency-Key`)
 - `PATCH /api/v1/admin/roles/{id}` (`roles:write`)
 - `DELETE /api/v1/admin/roles/{id}` (`roles:write`)
 - `GET /api/v1/admin/permissions` (`permissions:read`, supports `page,page_size,sort_by,sort_order,resource,action`)
@@ -398,6 +402,7 @@ OpenAPI spec:
 - Request IDs are attached through middleware for log correlation.
 - RBAC is permission-based and enforced in route middleware.
 - Auth and API endpoints use separate fixed-window rate limiters.
+- Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).
 
 ## Error Negotiation
 

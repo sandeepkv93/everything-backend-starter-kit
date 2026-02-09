@@ -4,6 +4,7 @@ go_library(
     name = "middleware",
     srcs = [
         "auth_middleware.go",
+        "idempotency_middleware.go",
         "rate_limit_middleware.go",
         "rate_limit_redis.go",
         "rbac_middleware.go",
@@ -14,6 +15,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/http/response",
+        "//internal/observability",
         "//internal/security",
         "//internal/service",
         "@com_github_go_chi_chi_v5//:chi",

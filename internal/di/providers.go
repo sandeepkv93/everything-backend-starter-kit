@@ -76,6 +76,8 @@ var HTTPSet = wire.NewSet(
 	handler.NewAdminHandler,
 	provideGlobalRateLimiter,
 	provideAuthRateLimiter,
+	provideIdempotencyStore,
+	provideIdempotencyMiddlewareFactory,
 	provideRouterDependencies,
 	router.NewRouter,
 	provideHTTPServer,
@@ -131,7 +133,7 @@ func provideRuntimeDB(cfg *config.Config) (*gorm.DB, error) {
 }
 
 func provideRedisClient(cfg *config.Config) redis.UniversalClient {
-	if !cfg.RateLimitRedisEnabled {
+	if !cfg.RateLimitRedisEnabled && (!cfg.IdempotencyEnabled || !cfg.IdempotencyRedisEnabled) {
 		return nil
 	}
 	return redis.NewClient(&redis.Options{
@@ -139,6 +141,26 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 		Password: cfg.RedisPassword,
 		DB:       cfg.RedisDB,
 	})
+}
+
+func provideIdempotencyStore(cfg *config.Config, db *gorm.DB, redisClient redis.UniversalClient) service.IdempotencyStore {
+	if !cfg.IdempotencyEnabled {
+		return nil
+	}
+	if cfg.IdempotencyRedisEnabled && redisClient != nil {
+		return service.NewRedisIdempotencyStore(redisClient, cfg.IdempotencyRedisPrefix)
+	}
+	return service.NewDBIdempotencyStore(db)
+}
+
+func provideIdempotencyMiddlewareFactory(cfg *config.Config, store service.IdempotencyStore) router.IdempotencyMiddlewareFactory {
+	if !cfg.IdempotencyEnabled || store == nil {
+		return nil
+	}
+	mw := middleware.NewIdempotencyMiddleware(store, cfg.IdempotencyTTL)
+	return func(scope string) func(http.Handler) http.Handler {
+		return mw.Middleware(scope)
+	}
 }
 
 func provideJWTManager(cfg *config.Config) *security.JWTManager {
@@ -197,6 +219,7 @@ func provideRouterDependencies(
 	rbac service.RBACAuthorizer,
 	globalRateLimiter router.GlobalRateLimiterFunc,
 	authRateLimiter router.AuthRateLimiterFunc,
+	idempotencyFactory router.IdempotencyMiddlewareFactory,
 	readiness *health.ProbeRunner,
 	cfg *config.Config,
 ) router.Dependencies {
@@ -212,6 +235,7 @@ func provideRouterDependencies(
 		APIRateLimitRPM:            cfg.APIRateLimitPerMin,
 		GlobalRateLimiter:          globalRateLimiter,
 		AuthRateLimiter:            authRateLimiter,
+		Idempotency:                idempotencyFactory,
 		Readiness:                  readiness,
 		EnableOTelHTTP:             cfg.OTELMetricsEnabled || cfg.OTELTracingEnabled,
 	}
@@ -233,7 +257,7 @@ func provideReadinessProbeRunner(cfg *config.Config, db *gorm.DB, redisClient re
 	if c := health.NewDBChecker(db); c != nil {
 		checkers = append(checkers, c)
 	}
-	if cfg.RateLimitRedisEnabled {
+	if cfg.RateLimitRedisEnabled || (cfg.IdempotencyEnabled && cfg.IdempotencyRedisEnabled) {
 		if c := health.NewRedisChecker(redisClient); c != nil {
 			checkers = append(checkers, c)
 		}

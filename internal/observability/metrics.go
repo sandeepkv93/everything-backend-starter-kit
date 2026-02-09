@@ -23,6 +23,7 @@ type AppMetrics struct {
 	authRefreshCounter metric.Int64Counter
 	authLogoutCounter  metric.Int64Counter
 	adminRBACCounter   metric.Int64Counter
+	idempotencyCounter metric.Int64Counter
 	authReqDuration    metric.Float64Histogram
 }
 
@@ -91,6 +92,10 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 	if err != nil {
 		return nil, err
 	}
+	idempotencyCounter, err := meter.Int64Counter("http.idempotency.events")
+	if err != nil {
+		return nil, err
+	}
 	authReqDuration, err := meter.Float64Histogram("auth.request.duration", metric.WithUnit("s"), metric.WithDescription("Duration of auth endpoint requests in seconds"))
 	if err != nil {
 		return nil, err
@@ -102,6 +107,7 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 		authRefreshCounter: refreshCounter,
 		authLogoutCounter:  logoutCounter,
 		adminRBACCounter:   adminRBACCounter,
+		idempotencyCounter: idempotencyCounter,
 		authReqDuration:    authReqDuration,
 	}
 	metricsMu.Unlock()
@@ -161,6 +167,19 @@ func RecordAdminRBACMutation(ctx context.Context, entity, action, status string)
 
 func RecordAdminRoleMutation(ctx context.Context, action string) {
 	RecordAdminRBACMutation(ctx, "role", action, "success")
+}
+
+func RecordIdempotencyEvent(ctx context.Context, scope, outcome string) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.idempotencyCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("scope", scope),
+		attribute.String("outcome", outcome),
+	))
 }
 
 func RecordAuthRequestDuration(ctx context.Context, endpoint, status string, duration time.Duration) {

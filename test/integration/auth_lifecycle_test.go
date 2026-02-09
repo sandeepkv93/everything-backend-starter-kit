@@ -23,6 +23,7 @@ import (
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/database"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/handler"
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/router"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
@@ -263,6 +264,9 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 		AuthGoogleEnabled:                 false,
 		AuthLocalEnabled:                  true,
 		AuthLocalRequireEmailVerification: false,
+		IdempotencyEnabled:                false,
+		IdempotencyRedisEnabled:           false,
+		IdempotencyTTL:                    24 * time.Hour,
 		AuthEmailVerifyTokenTTL:           30 * time.Minute,
 		AuthEmailVerifyBaseURL:            "http://localhost:3000/verify-email",
 		AuthPasswordResetTokenTTL:         15 * time.Minute,
@@ -312,6 +316,14 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 	authHandler := handler.NewAuthHandler(authSvc, cookieMgr, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)
 	userHandler := handler.NewUserHandler(userSvc, sessionSvc)
 	adminHandler := handler.NewAdminHandler(userSvc, userRepo, roleRepo, permRepo, rbac, db, cfg)
+	var idempotencyFactory router.IdempotencyMiddlewareFactory
+	if cfg.IdempotencyEnabled {
+		store := service.NewDBIdempotencyStore(db)
+		idemMW := middleware.NewIdempotencyMiddleware(store, cfg.IdempotencyTTL)
+		idempotencyFactory = func(scope string) func(http.Handler) http.Handler {
+			return idemMW.Middleware(scope)
+		}
+	}
 
 	r := router.NewRouter(router.Dependencies{
 		AuthHandler:                authHandler,
@@ -323,6 +335,7 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 		AuthRateLimitRPM:           1000,
 		PasswordForgotRateLimitRPM: 1000,
 		APIRateLimitRPM:            1000,
+		Idempotency:                idempotencyFactory,
 		EnableOTelHTTP:             false,
 	})
 

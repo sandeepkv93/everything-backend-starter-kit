@@ -53,6 +53,10 @@ tasks:
     cmds:
       - go test ./test/integration -run TestProblemDetails -v
 
+  test:idempotency:
+    cmds:
+      - go test ./test/integration -run TestIdempotency -v
+
   lint:
     deps: [lint:tools]
     cmds:

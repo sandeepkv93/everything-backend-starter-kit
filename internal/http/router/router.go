@@ -28,12 +28,14 @@ type Dependencies struct {
 	APIRateLimitRPM            int
 	GlobalRateLimiter          GlobalRateLimiterFunc
 	AuthRateLimiter            AuthRateLimiterFunc
+	Idempotency                IdempotencyMiddlewareFactory
 	Readiness                  *health.ProbeRunner
 	EnableOTelHTTP             bool
 }
 
 type GlobalRateLimiterFunc func(http.Handler) http.Handler
 type AuthRateLimiterFunc func(http.Handler) http.Handler
+type IdempotencyMiddlewareFactory func(scope string) func(http.Handler) http.Handler
 
 func NewRouter(dep Dependencies) http.Handler {
 	r := chi.NewRouter()
@@ -76,11 +78,19 @@ func NewRouter(dep Dependencies) http.Handler {
 		r.Route("/auth", func(r chi.Router) {
 			r.With(authLimiter).Get("/google/login", dep.AuthHandler.GoogleLogin)
 			r.With(authLimiter).Get("/google/callback", dep.AuthHandler.GoogleCallback)
-			r.With(authLimiter).Post("/local/register", dep.AuthHandler.LocalRegister)
+			registerChain := []func(http.Handler) http.Handler{authLimiter}
+			if dep.Idempotency != nil {
+				registerChain = append(registerChain, dep.Idempotency("auth.local.register"))
+			}
+			r.With(registerChain...).Post("/local/register", dep.AuthHandler.LocalRegister)
 			r.With(authLimiter).Post("/local/login", dep.AuthHandler.LocalLogin)
 			r.With(authLimiter).Post("/local/verify/request", dep.AuthHandler.LocalVerifyRequest)
 			r.With(authLimiter).Post("/local/verify/confirm", dep.AuthHandler.LocalVerifyConfirm)
-			r.With(forgotLimiter).Post("/local/password/forgot", dep.AuthHandler.LocalPasswordForgot)
+			forgotChain := []func(http.Handler) http.Handler{forgotLimiter}
+			if dep.Idempotency != nil {
+				forgotChain = append(forgotChain, dep.Idempotency("auth.local.password.forgot"))
+			}
+			r.With(forgotChain...).Post("/local/password/forgot", dep.AuthHandler.LocalPasswordForgot)
 			r.With(authLimiter).Post("/local/password/reset", dep.AuthHandler.LocalPasswordReset)
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.CSRFMiddleware)
@@ -102,9 +112,17 @@ func NewRouter(dep Dependencies) http.Handler {
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(dep.JWTManager))
 			r.With(middleware.RequirePermission(dep.RBACService, "users:read")).Get("/users", dep.AdminHandler.ListUsers)
-			r.With(middleware.RequirePermission(dep.RBACService, "users:write")).Patch("/users/{id}/roles", dep.AdminHandler.SetUserRoles)
+			userRoleChain := []func(http.Handler) http.Handler{middleware.RequirePermission(dep.RBACService, "users:write")}
+			if dep.Idempotency != nil {
+				userRoleChain = append(userRoleChain, dep.Idempotency("admin.users.roles.patch"))
+			}
+			r.With(userRoleChain...).Patch("/users/{id}/roles", dep.AdminHandler.SetUserRoles)
 			r.With(middleware.RequirePermission(dep.RBACService, "roles:read")).Get("/roles", dep.AdminHandler.ListRoles)
-			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Post("/roles", dep.AdminHandler.CreateRole)
+			roleCreateChain := []func(http.Handler) http.Handler{middleware.RequirePermission(dep.RBACService, "roles:write")}
+			if dep.Idempotency != nil {
+				roleCreateChain = append(roleCreateChain, dep.Idempotency("admin.roles.create"))
+			}
+			r.With(roleCreateChain...).Post("/roles", dep.AdminHandler.CreateRole)
 			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Patch("/roles/{id}", dep.AdminHandler.UpdateRole)
 			r.With(middleware.RequirePermission(dep.RBACService, "roles:write")).Delete("/roles/{id}", dep.AdminHandler.DeleteRole)
 			r.With(middleware.RequirePermission(dep.RBACService, "permissions:read")).Get("/permissions", dep.AdminHandler.ListPermissions)
