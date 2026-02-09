@@ -1,10 +1,14 @@
 openapi: 3.0.3
 info:
   title: Secure Observable Go Backend Starter Kit API
-  version: 1.0.1
+  version: 1.1.0
   description: Cookie-based auth with Google OAuth2 and local email/password auth, plus RBAC-protected admin endpoints.
 servers:
   - url: http://localhost:8080/api/v1
+tags:
+  - name: Auth
+  - name: User
+  - name: Admin
 components:
   securitySchemes:
     accessTokenCookie:
@@ -14,15 +18,43 @@ components:
   schemas:
     Meta:
       type: object
+      required: [request_id, timestamp]
       properties:
-        request_id: { type: string }
-        timestamp: { type: string, format: date-time }
+        request_id:
+          type: string
+          example: req-abc123
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-02-09T10:00:00Z"
+
     APIError:
       type: object
+      required: [code, message]
       properties:
-        code: { type: string }
-        message: { type: string }
-        details: {}
+        code:
+          type: string
+          example: BAD_REQUEST
+        message:
+          type: string
+          example: invalid payload
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          $ref: '#/components/schemas/APIError'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
     Envelope:
       type: object
       properties:
@@ -30,35 +62,313 @@ components:
         data: {}
         error: { $ref: '#/components/schemas/APIError' }
         meta: { $ref: '#/components/schemas/Meta' }
-    User:
+
+    PermissionSummary:
       type: object
+      required: [id, resource, action, created_at, updated_at]
       properties:
-        id: { type: integer }
-        email: { type: string, format: email }
-        name: { type: string }
-        avatar_url: { type: string }
-        status: { type: string }
-    Role:
+        id:
+          type: integer
+          format: uint64
+          example: 1
+        resource:
+          type: string
+          example: users
+        action:
+          type: string
+          example: read
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+
+    RoleSummary:
       type: object
+      required: [id, name, description, created_at, updated_at]
       properties:
-        id: { type: integer }
-        name: { type: string }
-        description: { type: string }
-    Permission:
+        id:
+          type: integer
+          format: uint64
+          example: 2
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+          example: support_admin
+        description:
+          type: string
+          maxLength: 255
+          example: Support operators with user read/update access.
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionSummary'
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+
+    UserSummary:
       type: object
+      required: [id, email, name, status, last_login_at, created_at, updated_at]
       properties:
-        id: { type: integer }
-        resource: { type: string }
-        action: { type: string }
+        id:
+          type: integer
+          format: uint64
+          example: 42
+        email:
+          type: string
+          format: email
+          example: admin@example.com
+        name:
+          type: string
+          example: Admin User
+        avatar_url:
+          type: string
+          nullable: true
+          example: https://cdn.example.com/avatars/42.png
+        status:
+          type: string
+          example: active
+        last_login_at:
+          type: string
+          format: date-time
+          example: "2026-02-09T09:58:32Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-02-09T09:58:32Z"
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleSummary'
+
+    SetUserRolesRequest:
+      type: object
+      required: [role_ids]
+      properties:
+        role_ids:
+          type: array
+          minItems: 0
+          uniqueItems: true
+          items:
+            type: integer
+            format: uint64
+      example:
+        role_ids: [1, 2]
+
+    SetUserRolesData:
+      type: object
+      required: [user_id, role_ids]
+      properties:
+        user_id:
+          type: integer
+          format: uint64
+          example: 42
+        role_ids:
+          type: array
+          items:
+            type: integer
+            format: uint64
+          example: [1, 2]
+
+    SetUserRolesResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SetUserRolesData'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CreateRoleRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        description:
+          type: string
+          maxLength: 255
+        permissions:
+          type: array
+          items:
+            type: string
+            pattern: '^[a-zA-Z0-9_\-]+:[a-zA-Z0-9_\-]+$'
+      example:
+        name: support_admin
+        description: Support operators with user management capabilities
+        permissions:
+          - users:read
+          - users:write
+
+    UserListResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    RoleListResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    PermissionListResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    CreateRoleResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/RoleSummary'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+  responses:
+    BadRequestError:
+      description: Request payload/path/query is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            invalidPayload:
+              value:
+                success: false
+                error:
+                  code: BAD_REQUEST
+                  message: invalid payload
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+    UnauthorizedError:
+      description: Authentication failed or access token is missing/invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            unauthorized:
+              value:
+                success: false
+                error:
+                  code: UNAUTHORIZED
+                  message: invalid credentials
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+    ForbiddenError:
+      description: Authenticated but missing required permission.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            forbidden:
+              value:
+                success: false
+                error:
+                  code: FORBIDDEN
+                  message: missing permission users:write
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+    NotFoundError:
+      description: Resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            notFound:
+              value:
+                success: false
+                error:
+                  code: NOT_FOUND
+                  message: user not found
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+    InternalError:
+      description: Unexpected server failure.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+          examples:
+            internal:
+              value:
+                success: false
+                error:
+                  code: INTERNAL
+                  message: failed to list users
+                meta:
+                  request_id: req-abc123
+                  timestamp: "2026-02-09T10:00:00Z"
+
 paths:
   /auth/google/login:
     get:
+      tags: [Auth]
       summary: Start Google OAuth login
+      operationId: authGoogleLogin
       responses:
         '302': { description: Redirect to Google }
+
   /auth/google/callback:
     get:
+      tags: [Auth]
       summary: Handle Google OAuth callback
+      operationId: authGoogleCallback
       parameters:
         - in: query
           name: code
@@ -74,10 +384,14 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Envelope' }
-        '401': { description: OAuth failure }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /auth/local/register:
     post:
+      tags: [Auth]
       summary: Register local email/password account
+      operationId: authLocalRegister
       requestBody:
         required: true
         content:
@@ -95,10 +409,14 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Envelope' }
-        '400': { description: Validation error }
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
   /auth/local/login:
     post:
+      tags: [Auth]
       summary: Login with local email/password
+      operationId: authLocalLogin
       requestBody:
         required: true
         content:
@@ -115,11 +433,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Envelope' }
-        '401': { description: Invalid credentials }
-        '403': { description: Email unverified }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
   /auth/local/change-password:
     post:
+      tags: [Auth]
       summary: Change local account password
+      operationId: authLocalChangePassword
       security:
         - accessTokenCookie: []
       parameters:
@@ -139,11 +462,16 @@ paths:
                 new_password: { type: string, format: password, minLength: 12 }
       responses:
         '200': { description: Password changed }
-        '400': { description: Validation error }
-        '401': { description: Unauthorized }
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /auth/refresh:
     post:
+      tags: [Auth]
       summary: Rotate refresh token and issue new access token
+      operationId: authRefresh
       parameters:
         - in: header
           name: X-CSRF-Token
@@ -155,10 +483,14 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Envelope' }
-        '401': { description: Missing or invalid refresh token }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /auth/logout:
     post:
+      tags: [Auth]
       summary: Revoke current user sessions
+      operationId: authLogout
       security:
         - accessTokenCookie: []
       parameters:
@@ -168,10 +500,14 @@ paths:
           schema: { type: string }
       responses:
         '200': { description: Logout success }
-        '401': { description: Unauthorized }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /me:
     get:
+      tags: [User]
       summary: Get current profile
+      operationId: userMe
       security:
         - accessTokenCookie: []
       responses:
@@ -180,52 +516,157 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Envelope' }
-        '401': { description: Unauthorized }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /admin/users:
     get:
+      tags: [Admin]
       summary: List users
+      description: Returns all users with their assigned roles for RBAC management views.
+      operationId: adminListUsers
       security:
         - accessTokenCookie: []
       responses:
         '200':
-          description: Users
+          description: Users returned
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Envelope' }
-        '403': { description: Forbidden }
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+              examples:
+                users:
+                  value:
+                    success: true
+                    data:
+                      - id: 42
+                        email: admin@example.com
+                        name: Admin User
+                        avatar_url: https://cdn.example.com/avatars/42.png
+                        status: active
+                        last_login_at: "2026-02-09T09:58:32Z"
+                        created_at: "2026-02-01T00:00:00Z"
+                        updated_at: "2026-02-09T09:58:32Z"
+                        roles:
+                          - id: 1
+                            name: admin
+                            description: Platform administrators
+                            created_at: "2026-02-01T00:00:00Z"
+                            updated_at: "2026-02-01T00:00:00Z"
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /admin/users/{id}/roles:
     patch:
+      tags: [Admin]
       summary: Set roles for user
+      description: Replaces a user's assigned roles with the provided role ID set.
+      operationId: adminSetUserRoles
       security:
         - accessTokenCookie: []
       parameters:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          description: Numeric user ID.
+          schema:
+            type: integer
+            format: uint64
+            minimum: 1
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [role_ids]
-              properties:
-                role_ids:
-                  type: array
-                  items: { type: integer }
+              $ref: '#/components/schemas/SetUserRolesRequest'
+            examples:
+              updateUserRoles:
+                value:
+                  role_ids: [1, 2]
       responses:
-        '200': { description: Updated }
-        '403': { description: Forbidden }
+        '200':
+          description: Roles updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetUserRolesResponse'
+              examples:
+                updated:
+                  value:
+                    success: true
+                    data:
+                      user_id: 42
+                      role_ids: [1, 2]
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /admin/roles:
     get:
+      tags: [Admin]
       summary: List roles
+      description: Returns all RBAC roles with attached permissions for role management UI.
+      operationId: adminListRoles
       security:
         - accessTokenCookie: []
       responses:
-        '200': { description: Roles }
+        '200':
+          description: Roles returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+              examples:
+                roles:
+                  value:
+                    success: true
+                    data:
+                      - id: 1
+                        name: admin
+                        description: Platform administrators
+                        permissions:
+                          - id: 1
+                            resource: users
+                            action: read
+                            created_at: "2026-02-01T00:00:00Z"
+                            updated_at: "2026-02-01T00:00:00Z"
+                          - id: 2
+                            resource: users
+                            action: write
+                            created_at: "2026-02-01T00:00:00Z"
+                            updated_at: "2026-02-01T00:00:00Z"
+                        created_at: "2026-02-01T00:00:00Z"
+                        updated_at: "2026-02-01T00:00:00Z"
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
     post:
+      tags: [Admin]
       summary: Create role
+      description: Creates a new role and optionally attaches permissions by `resource:action` strings.
+      operationId: adminCreateRole
       security:
         - accessTokenCookie: []
       requestBody:
@@ -233,22 +674,102 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                description: { type: string }
-                permissions:
-                  type: array
-                  items: { type: string, example: users:read }
+              $ref: '#/components/schemas/CreateRoleRequest'
+            examples:
+              createRole:
+                value:
+                  name: support_admin
+                  description: Support operators with user management capabilities
+                  permissions: [users:read, users:write]
       responses:
-        '201': { description: Created }
-        '403': { description: Forbidden }
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRoleResponse'
+              examples:
+                created:
+                  value:
+                    success: true
+                    data:
+                      id: 7
+                      name: support_admin
+                      description: Support operators with user management capabilities
+                      permissions: []
+                      created_at: "2026-02-09T10:00:00Z"
+                      updated_at: "2026-02-09T10:00:00Z"
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '400':
+          description: Invalid input (including malformed permission format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+              examples:
+                invalidPermissionFormat:
+                  value:
+                    success: false
+                    error:
+                      code: BAD_REQUEST
+                      message: permission format must be resource:action
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+                duplicateRole:
+                  value:
+                    success: false
+                    error:
+                      code: BAD_REQUEST
+                      message: failed to create role
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /admin/permissions:
     get:
+      tags: [Admin]
       summary: List permissions
+      description: Returns canonical permission definitions used while creating/editing roles.
+      operationId: adminListPermissions
       security:
         - accessTokenCookie: []
       responses:
-        '200': { description: Permissions }
-        '403': { description: Forbidden }
+        '200':
+          description: Permissions returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionListResponse'
+              examples:
+                permissions:
+                  value:
+                    success: true
+                    data:
+                      - id: 1
+                        resource: users
+                        action: read
+                        created_at: "2026-02-01T00:00:00Z"
+                        updated_at: "2026-02-01T00:00:00Z"
+                      - id: 2
+                        resource: users
+                        action: write
+                        created_at: "2026-02-01T00:00:00Z"
+                        updated_at: "2026-02-01T00:00:00Z"
+                    meta:
+                      request_id: req-abc123
+                      timestamp: "2026-02-09T10:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalError'
