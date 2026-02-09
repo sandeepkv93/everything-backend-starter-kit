@@ -49,6 +49,10 @@ tasks:
     cmds:
       - go test ./test/integration -run TestAdminList -v
 
+  test:problem-details:
+    cmds:
+      - go test ./test/integration -run TestProblemDetails -v
+
   lint:
     deps: [lint:tools]
     cmds:

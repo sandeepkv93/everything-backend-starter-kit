@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Secure Observable Go Backend Starter Kit API
   version: 1.1.0
-  description: Cookie-based auth with Google OAuth2 and local email/password auth, plus RBAC-protected admin endpoints.
+  description: Cookie-based auth with Google OAuth2 and local email/password auth, plus RBAC-protected admin endpoints. Error responses support envelope JSON by default and RFC7807 via Accept negotiation (`application/problem+json`).
 servers:
   - url: http://localhost:8080/api/v1
 tags:
@@ -54,6 +54,33 @@ components:
           $ref: '#/components/schemas/APIError'
         meta:
           $ref: '#/components/schemas/Meta'
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail, instance, code, request_id]
+      properties:
+        type:
+          type: string
+          example: urn:problem:secure-observable:bad-request
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          example: invalid payload
+        instance:
+          type: string
+          example: /api/v1/auth/local/login
+        code:
+          type: string
+          example: BAD_REQUEST
+        request_id:
+          type: string
+          example: req-abc123
 
     Envelope:
       type: object
@@ -554,6 +581,9 @@ components:
                 meta:
                   request_id: req-abc123
                   timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
     UnauthorizedError:
       description: Authentication failed or access token is missing/invalid.
       content:
@@ -570,6 +600,9 @@ components:
                 meta:
                   request_id: req-abc123
                   timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
     ForbiddenError:
       description: Authenticated but missing required permission.
       content:
@@ -586,6 +619,9 @@ components:
                 meta:
                   request_id: req-abc123
                   timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
     NotFoundError:
       description: Resource was not found.
       content:
@@ -602,6 +638,9 @@ components:
                 meta:
                   request_id: req-abc123
                   timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
     InternalError:
       description: Unexpected server failure.
       content:
@@ -618,6 +657,9 @@ components:
                 meta:
                   request_id: req-abc123
                   timestamp: "2026-02-09T10:00:00Z"
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
 
 paths:
   /auth/google/login:

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "response",
@@ -6,4 +6,10 @@ go_library(
     importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response",
     visibility = ["//:__subpackages__"],
     deps = ["@com_github_go_chi_chi_v5//middleware"],
+)
+
+go_test(
+    name = "response_test",
+    srcs = ["response_test.go"],
+    embed = [":response"],
 )

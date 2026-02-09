@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
 )
 
 func RequestID(next http.Handler) http.Handler { return chimiddleware.RequestID(next) }
@@ -66,7 +68,7 @@ func CSRFMiddleware(next http.Handler) http.Handler {
 		}
 		cookie, err := r.Cookie("csrf_token")
 		if err != nil || cookie.Value == "" || r.Header.Get("X-CSRF-Token") != cookie.Value {
-			http.Error(w, "invalid csrf token", http.StatusForbidden)
+			response.Error(w, r, http.StatusForbidden, "FORBIDDEN", "invalid csrf token", nil)
 			return
 		}
 		next.ServeHTTP(w, r)

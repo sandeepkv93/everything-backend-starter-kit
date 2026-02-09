@@ -213,6 +213,7 @@ Your command surface stays simple, for example:
 - `task test:password-reset`
 - `task test:admin-rbac-write`
 - `task test:admin-list`
+- `task test:problem-details`
 - `task security`
 
 ## Auth Lifecycle Integration Tests
@@ -242,6 +243,10 @@ Run only RBAC write API tests:
 Run only admin list pagination/filter/sort tests:
 
 - `task test:admin-list`
+
+Run only problem-details negotiation tests:
+
+- `task test:problem-details`
 
 Run all tests:
 
@@ -393,6 +398,16 @@ OpenAPI spec:
 - Request IDs are attached through middleware for log correlation.
 - RBAC is permission-based and enforced in route middleware.
 - Auth and API endpoints use separate fixed-window rate limiters.
+
+## Error Negotiation
+
+- Default error format remains the existing JSON envelope:
+- `Content-Type: application/json`
+- Body shape: `{success:false,error:{code,message,details?},meta:{request_id,timestamp}}`
+- Clients can request RFC7807 problem details with:
+- `Accept: application/problem+json`
+- Problem response fields:
+- `type,title,status,detail,instance,code,request_id`
 
 ## Command-Line Tools (`cmd/*`)
 
