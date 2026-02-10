@@ -56,6 +56,10 @@ func main() {
 		obsCancel()
 	}
 
+	if a.StopBackgroundTasks != nil {
+		a.StopBackgroundTasks()
+	}
+
 	if a.Redis != nil {
 		if err := a.Redis.Close(); err != nil {
 			a.Logger.Error("failed to close redis client", "error", err)

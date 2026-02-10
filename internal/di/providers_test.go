@@ -2,19 +2,26 @@ package di
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/router"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
 )
 
 func TestProvideHTTPServer(t *testing.T) {
@@ -323,13 +330,61 @@ func TestProvideApp(t *testing.T) {
 	srv := &http.Server{Addr: ":8080", ReadHeaderTimeout: time.Second}
 	runtime := &observability.Runtime{}
 
-	app := provideApp(cfg, logger, srv, runtime, nil, nil, nil)
+	app := provideApp(cfg, logger, srv, runtime, nil, nil, nil, nil)
 	if app == nil {
 		t.Fatal("expected app")
 	}
 	if app.Config != cfg || app.Logger != logger || app.Server != srv || app.Observability != runtime {
 		t.Fatal("app dependencies not wired as expected")
 	}
+}
+
+func TestStartDBIdempotencyCleanup(t *testing.T) {
+	db := newDIUnitTestDB(t)
+	store := service.NewDBIdempotencyStore(db)
+	cfg := &config.Config{
+		IdempotencyEnabled:           true,
+		IdempotencyRedisEnabled:      false,
+		IdempotencyDBCleanupEnabled:  true,
+		IdempotencyDBCleanupInterval: 10 * time.Millisecond,
+		IdempotencyDBCleanupBatch:    100,
+	}
+	stop := startDBIdempotencyCleanup(cfg, slog.Default(), store)
+	if stop == nil {
+		t.Fatal("expected cleanup stop function for db fallback idempotency store")
+	}
+	stop()
+}
+
+func TestStartDBIdempotencyCleanupDisabledWhenRedisStoreUsed(t *testing.T) {
+	db := newDIUnitTestDB(t)
+	store := service.NewDBIdempotencyStore(db)
+	cfg := &config.Config{
+		IdempotencyEnabled:           true,
+		IdempotencyRedisEnabled:      true,
+		IdempotencyDBCleanupEnabled:  true,
+		IdempotencyDBCleanupInterval: 10 * time.Millisecond,
+		IdempotencyDBCleanupBatch:    100,
+	}
+	stop := startDBIdempotencyCleanup(cfg, slog.Default(), store)
+	if stop != nil {
+		t.Fatal("expected no cleanup stop function when redis idempotency is enabled")
+	}
+}
+
+func newDIUnitTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
+		Logger: gormlogger.Default.LogMode(gormlogger.Silent),
+	})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	if err := db.AutoMigrate(&domain.IdempotencyRecord{}); err != nil {
+		t.Fatalf("migrate idempotency record: %v", err)
+	}
+	return db
 }
 
 func TestProvideRedisClientEnabledForAdminListCache(t *testing.T) {

@@ -345,6 +345,9 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `IDEMPOTENCY_ENABLED` (default `true`)
 - `IDEMPOTENCY_REDIS_ENABLED` (default `true`, falls back to DB store when disabled)
 - `IDEMPOTENCY_TTL` (default `24h`)
+- `IDEMPOTENCY_DB_CLEANUP_ENABLED` (default `true`; applies only to DB fallback store)
+- `IDEMPOTENCY_DB_CLEANUP_INTERVAL` (default `5m`; applies only to DB fallback store)
+- `IDEMPOTENCY_DB_CLEANUP_BATCH_SIZE` (default `500`; applies only to DB fallback store)
 - `ADMIN_LIST_CACHE_ENABLED` (default `true`)
 - `ADMIN_LIST_CACHE_TTL` (default `30s`)
 - `NEGATIVE_LOOKUP_CACHE_ENABLED` (default `true`)
@@ -486,6 +489,7 @@ OpenAPI spec:
 - API limiter keys authenticated requests by access-token subject (`sub:<user_id>`) and falls back to client IP when no valid access token is present.
 - Forgot-password rate limiting is Redis-distributed when `RATE_LIMIT_REDIS_ENABLED=true`, with fail-closed fallback semantics for backend errors.
 - Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).
+- When idempotency uses DB fallback (`IDEMPOTENCY_REDIS_ENABLED=false`), a bounded background cleanup removes expired records by `expires_at` to prevent unbounded growth.
 - Admin list endpoints (`/admin/users`, `/admin/roles`, `/admin/permissions`) use read-through Redis cache with actor-scoped query keys and short TTL.
 - RBAC/admin mutations invalidate affected admin list cache namespaces to prevent stale list responses.
 - Safe non-auth-critical RBAC entity lookups (`role/permission by id` in admin write flows) use short-lived negative caching for repeated not-found IDs.

@@ -47,6 +47,7 @@ go_test(
         "admin_list_cache_test.go",
         "auth_abuse_guard_test.go",
         "auth_password_policy_test.go",
+        "idempotency_store_db_test.go",
         "negative_lookup_cache_test.go",
         "rbac_permission_resolver_test.go",
         "rbac_service_test.go",
@@ -57,5 +58,8 @@ go_test(
         "//internal/domain",
         "//internal/repository",
         "//internal/security",
+        "@io_gorm_driver_sqlite//:sqlite",
+        "@io_gorm_gorm//:gorm",
+        "@io_gorm_gorm//logger",
     ],
 )

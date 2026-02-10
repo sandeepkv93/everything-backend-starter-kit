@@ -24,9 +24,19 @@ type App struct {
 	ShutdownTimeout              time.Duration
 	ShutdownHTTPDrainTimeout     time.Duration
 	ShutdownObservabilityTimeout time.Duration
+	StopBackgroundTasks          func()
 }
 
-func New(cfg *config.Config, logger *slog.Logger, server *http.Server, runtime *observability.Runtime, db *gorm.DB, redis redis.UniversalClient, readiness *health.ProbeRunner) *App {
+func New(
+	cfg *config.Config,
+	logger *slog.Logger,
+	server *http.Server,
+	runtime *observability.Runtime,
+	db *gorm.DB,
+	redis redis.UniversalClient,
+	readiness *health.ProbeRunner,
+	stopBackgroundTasks func(),
+) *App {
 	return &App{
 		Config:                       cfg,
 		Logger:                       logger,
@@ -38,5 +48,6 @@ func New(cfg *config.Config, logger *slog.Logger, server *http.Server, runtime *
 		ShutdownTimeout:              cfg.ShutdownTimeout,
 		ShutdownHTTPDrainTimeout:     cfg.ShutdownHTTPDrainTimeout,
 		ShutdownObservabilityTimeout: cfg.ShutdownObservabilityTimeout,
+		StopBackgroundTasks:          stopBackgroundTasks,
 	}
 }

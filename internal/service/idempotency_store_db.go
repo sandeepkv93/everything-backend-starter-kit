@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -17,6 +18,48 @@ type DBIdempotencyStore struct {
 
 func NewDBIdempotencyStore(db *gorm.DB) *DBIdempotencyStore {
 	return &DBIdempotencyStore{db: db}
+}
+
+func (s *DBIdempotencyStore) CleanupExpired(ctx context.Context, now time.Time, batchSize int) (int64, error) {
+	if batchSize <= 0 {
+		batchSize = 500
+	}
+	scoped := s.db.WithContext(ctx)
+	sub := scoped.Model(&domain.IdempotencyRecord{}).
+		Select("id").
+		Where("expires_at <= ?", now.UTC()).
+		Order("id ASC").
+		Limit(batchSize)
+	res := scoped.
+		Where("id IN (?)", sub).
+		Delete(&domain.IdempotencyRecord{})
+	return res.RowsAffected, res.Error
+}
+
+func (s *DBIdempotencyStore) RunCleanupLoop(ctx context.Context, interval time.Duration, batchSize int, logger *slog.Logger) {
+	if interval <= 0 {
+		interval = 5 * time.Minute
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			deleted, err := s.CleanupExpired(ctx, time.Now().UTC(), batchSize)
+			if err != nil {
+				if logger != nil {
+					logger.Warn("idempotency db cleanup failed", "error", err)
+				}
+				continue
+			}
+			if deleted > 0 && logger != nil {
+				logger.Info("idempotency db cleanup removed expired records", "deleted", deleted)
+			}
+		}
+	}
 }
 
 func (s *DBIdempotencyStore) Begin(ctx context.Context, scope, key, fingerprint string, ttl time.Duration) (IdempotencyBeginResult, error) {

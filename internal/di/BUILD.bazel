@@ -32,10 +32,15 @@ go_test(
     embed = [":di"],
     deps = [
         "//internal/config",
+        "//internal/domain",
         "//internal/http/middleware",
         "//internal/http/router",
         "//internal/observability",
         "//internal/security",
+        "//internal/service",
         "@com_github_redis_go_redis_v9//:go-redis",
+        "@io_gorm_driver_sqlite//:sqlite",
+        "@io_gorm_gorm//:gorm",
+        "@io_gorm_gorm//logger",
     ],
 )

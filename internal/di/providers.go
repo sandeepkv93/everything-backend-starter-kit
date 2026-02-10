@@ -560,6 +560,25 @@ func provideApp(
 	db *gorm.DB,
 	redisClient redis.UniversalClient,
 	readiness *health.ProbeRunner,
+	idempotencyStore service.IdempotencyStore,
 ) *app.App {
-	return app.New(cfg, logger, server, runtime, db, redisClient, readiness)
+	stopBackgroundTasks := startDBIdempotencyCleanup(cfg, logger, idempotencyStore)
+	return app.New(cfg, logger, server, runtime, db, redisClient, readiness, stopBackgroundTasks)
+}
+
+func startDBIdempotencyCleanup(
+	cfg *config.Config,
+	logger *slog.Logger,
+	store service.IdempotencyStore,
+) func() {
+	if !cfg.IdempotencyEnabled || cfg.IdempotencyRedisEnabled || !cfg.IdempotencyDBCleanupEnabled {
+		return nil
+	}
+	dbStore, ok := store.(*service.DBIdempotencyStore)
+	if !ok || dbStore == nil {
+		return nil
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go dbStore.RunCleanupLoop(ctx, cfg.IdempotencyDBCleanupInterval, cfg.IdempotencyDBCleanupBatch, logger)
+	return cancel
 }

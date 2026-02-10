@@ -79,6 +79,9 @@ type Config struct {
 	IdempotencyEnabled           bool
 	IdempotencyRedisEnabled      bool
 	IdempotencyTTL               time.Duration
+	IdempotencyDBCleanupEnabled  bool
+	IdempotencyDBCleanupInterval time.Duration
+	IdempotencyDBCleanupBatch    int
 	IdempotencyRedisPrefix       string
 	RedisKeyNamespace            string
 	RedisAddr                    string
@@ -176,6 +179,8 @@ func Load() (*Config, error) {
 		RateLimitRedisEnabled:             getEnvBool("RATE_LIMIT_REDIS_ENABLED", true),
 		IdempotencyEnabled:                getEnvBool("IDEMPOTENCY_ENABLED", true),
 		IdempotencyRedisEnabled:           getEnvBool("IDEMPOTENCY_REDIS_ENABLED", true),
+		IdempotencyDBCleanupEnabled:       getEnvBool("IDEMPOTENCY_DB_CLEANUP_ENABLED", true),
+		IdempotencyDBCleanupBatch:         getEnvInt("IDEMPOTENCY_DB_CLEANUP_BATCH_SIZE", 500),
 		RedisKeyNamespace:                 getEnv("REDIS_KEY_NAMESPACE", "v1"),
 		RedisAddr:                         getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisUsername:                     strings.TrimSpace(os.Getenv("REDIS_USERNAME")),
@@ -244,6 +249,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parse IDEMPOTENCY_TTL: %w", err)
 	}
 	cfg.IdempotencyTTL = idempotencyTTL
+
+	idempotencyDBCleanupInterval, err := time.ParseDuration(getEnv("IDEMPOTENCY_DB_CLEANUP_INTERVAL", "5m"))
+	if err != nil {
+		return nil, fmt.Errorf("parse IDEMPOTENCY_DB_CLEANUP_INTERVAL: %w", err)
+	}
+	cfg.IdempotencyDBCleanupInterval = idempotencyDBCleanupInterval
 
 	adminListCacheTTL, err := time.ParseDuration(getEnv("ADMIN_LIST_CACHE_TTL", "30s"))
 	if err != nil {
@@ -466,6 +477,14 @@ func (c *Config) Validate() error {
 	}
 	if c.IdempotencyTTL <= 0 || c.IdempotencyTTL > (7*24*time.Hour) {
 		errs = append(errs, "IDEMPOTENCY_TTL must be between 1s and 168h")
+	}
+	if c.IdempotencyEnabled && !c.IdempotencyRedisEnabled && c.IdempotencyDBCleanupEnabled {
+		if c.IdempotencyDBCleanupInterval < time.Second || c.IdempotencyDBCleanupInterval > time.Hour {
+			errs = append(errs, "IDEMPOTENCY_DB_CLEANUP_INTERVAL must be between 1s and 1h")
+		}
+		if c.IdempotencyDBCleanupBatch < 1 || c.IdempotencyDBCleanupBatch > 10000 {
+			errs = append(errs, "IDEMPOTENCY_DB_CLEANUP_BATCH_SIZE must be between 1 and 10000")
+		}
 	}
 	if ns := strings.TrimSpace(c.RedisKeyNamespace); ns != "" && !redisNamespacePattern.MatchString(ns) {
 		errs = append(errs, "REDIS_KEY_NAMESPACE must match ^[a-zA-Z0-9][a-zA-Z0-9_-]*$")

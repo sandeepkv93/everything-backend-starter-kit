@@ -68,7 +68,7 @@ func InitializeApp() (*app.App, error) {
 	dependencies := provideRouterDependencies(authHandler, userHandler, adminHandler, jwtManager, rbacService, permissionResolver, globalRateLimiterFunc, authRateLimiterFunc, forgotRateLimiterFunc, routeRateLimitPolicies, idempotencyMiddlewareFactory, probeRunner, configConfig)
 	httpHandler := router.NewRouter(dependencies)
 	server := provideHTTPServer(configConfig, httpHandler)
-	appApp := provideApp(configConfig, logger, server, runtime, db, universalClient, probeRunner)
+	appApp := provideApp(configConfig, logger, server, runtime, db, universalClient, probeRunner, idempotencyStore)
 	return appApp, nil
 }
 
