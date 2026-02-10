@@ -32,8 +32,10 @@ go_test(
     embed = [":di"],
     deps = [
         "//internal/config",
+        "//internal/http/middleware",
         "//internal/http/router",
         "//internal/observability",
+        "//internal/security",
         "@com_github_redis_go_redis_v9//:go-redis",
     ],
 )
