@@ -23,13 +23,13 @@ This repository is a production-oriented Go backend starter that brings together
 - Docker Compose local stack for DB + observability
 - CI + local hooks enforcing build/test/generation hygiene
 
-Architecture overview:
+## Overall architecture and flow
 
-- Request path:
-  Chi router + middleware chain (`internal/http/router`) -> handler layer (`internal/http/handler`) -> service layer (`internal/service`) -> repository layer (`internal/repository`) -> GORM + Postgres (`internal/database`)
-- Cross-cutting:
+- **Request path:**
+  Chi router + middleware chain (`internal/http/router`) --> handler layer (`internal/http/handler`) --> service layer (`internal/service`) --> repository layer (`internal/repository`) --> GORM + Postgres (`internal/database`)
+- **Cross-cutting:**
   security middleware for headers, CSRF, request ID, and rate limiting; Redis-backed caching and limiter policies; structured logging with trace/span correlation fields; OTel tracing, metrics (with exemplars), and logs export via collector
-- Dependency injection:
+- **Dependency injection:**
   providers and wiring in `internal/di`, with generated wiring verified in CI
 
 ```mermaid
@@ -63,14 +63,21 @@ flowchart LR
 
 ## Quick Start
 
-Prerequisites:
+### Prerequisites:
 
 - Go `1.24.13`
 - [Task](https://taskfile.dev/)
 - [Bazelisk](https://github.com/bazelbuild/bazelisk)
 - Docker + Docker Compose
 
-Run locally:
+### Clone the repo and cd into it:
+
+```bash
+git clone git@github.com:sandeepkv93/secure-observable-go-backend-starter-kit.git
+cd secure-observable-go-backend-starter-kit
+```
+
+### Run locally:
 
 ```bash
 task docker-up
@@ -79,7 +86,7 @@ task seed
 task run
 ```
 
-Useful commands:
+### Useful commands:
 
 ```bash
 task test
@@ -90,18 +97,10 @@ task obs-validate
 
 ## Documentation
 
-- Project guide (full documentation): `docs/project-guide.md`
-- Architecture and flow diagrams: `docs/diagrams.md`
-- Audit taxonomy: `docs/audit-taxonomy.md`
-
-Key folders:
-
-- API server: `cmd/api`
-- Internal app packages: `internal/`
-- Configuration and observability stack: `configs/`
-- Integration tests: `test/integration/`
-- Task definitions: `taskfiles/`
+- [Project guide (full documentation)](docs/project-guide.md)
+- [Architecture and flow diagrams](docs/architecture.md)
+- [Audit Taxonomy](docs/audit-taxonomy.md)
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE) for details.
