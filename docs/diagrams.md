@@ -149,6 +149,37 @@ sequenceDiagram
 
 Source: `docs/diagrams/forgot-rate-limiter-flow.mmd`
 
+## API Rate Limiter Keying Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as Router
+    participant RL as API Rate Limiter
+    participant JWT as JWT Manager
+    participant B as Limiter Backend (Redis/Local)
+    participant H as Handler
+
+    C->>R: Request /api/v1/*
+    R->>RL: Apply global limiter middleware
+    RL->>JWT: Parse access token (cookie/bearer)
+    alt valid access token with subject
+        RL->>RL: key = sub:<user_id>
+    else missing/invalid token
+        RL->>RL: key = client_ip
+    end
+
+    RL->>B: Allow(key, limit, window)
+    alt allowed
+        RL->>H: Continue request
+        H-->>C: 2xx/4xx/5xx
+    else denied
+        RL-->>C: 429 RATE_LIMITED (Retry-After)
+    end
+```
+
+Source: `docs/diagrams/api-rate-limiter-key-flow.mmd`
+
 ## Admin RBAC Write and Sync Flow
 
 ```mermaid

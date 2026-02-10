@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
+	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
 )
 
 type fixedWindow struct {
@@ -40,6 +42,7 @@ type RateLimiter struct {
 	window  time.Duration
 	mode    FailureMode
 	scope   string
+	keyFunc func(r *http.Request) string
 }
 
 func NewLocalFixedWindowLimiter() Limiter {
@@ -50,12 +53,30 @@ func NewLocalFixedWindowLimiter() Limiter {
 }
 
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-	return NewDistributedRateLimiter(NewLocalFixedWindowLimiter(), limit, window, FailClosed, "local")
+	return NewDistributedRateLimiterWithKey(NewLocalFixedWindowLimiter(), limit, window, FailClosed, "local", nil)
 }
 
 func NewDistributedRateLimiter(limiter Limiter, limit int, window time.Duration, mode FailureMode, scope string) *RateLimiter {
+	return NewDistributedRateLimiterWithKey(limiter, limit, window, mode, scope, nil)
+}
+
+func NewRateLimiterWithKey(limit int, window time.Duration, keyFunc func(r *http.Request) string) *RateLimiter {
+	return NewDistributedRateLimiterWithKey(NewLocalFixedWindowLimiter(), limit, window, FailClosed, "local", keyFunc)
+}
+
+func NewDistributedRateLimiterWithKey(
+	limiter Limiter,
+	limit int,
+	window time.Duration,
+	mode FailureMode,
+	scope string,
+	keyFunc func(r *http.Request) string,
+) *RateLimiter {
 	if scope == "" {
 		scope = "api"
+	}
+	if keyFunc == nil {
+		keyFunc = clientIPKey
 	}
 	return &RateLimiter{
 		limiter: limiter,
@@ -63,13 +84,17 @@ func NewDistributedRateLimiter(limiter Limiter, limit int, window time.Duration,
 		window:  window,
 		mode:    mode,
 		scope:   scope,
+		keyFunc: keyFunc,
 	}
 }
 
 func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			key := clientIPKey(r)
+			key := rl.keyFunc(r)
+			if key == "" {
+				key = clientIPKey(r)
+			}
 			allowed, retryAfter, err := rl.limiter.Allow(r.Context(), key, rl.limit, rl.window)
 			if err != nil {
 				if rl.mode == FailOpen {
@@ -92,6 +117,35 @@ func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 			}
 			next.ServeHTTP(w, r)
 		})
+	}
+}
+
+func SubjectOrIPKeyFunc(jwtMgr *security.JWTManager) func(r *http.Request) string {
+	return func(r *http.Request) string {
+		if jwtMgr == nil {
+			return clientIPKey(r)
+		}
+
+		raw := security.GetCookie(r, "access_token")
+		if raw == "" {
+			auth := strings.TrimSpace(r.Header.Get("Authorization"))
+			if len(auth) >= len("bearer ")+1 && strings.EqualFold(auth[:len("bearer ")], "bearer ") {
+				raw = strings.TrimSpace(auth[len("bearer "):])
+			}
+		}
+		if raw == "" {
+			return clientIPKey(r)
+		}
+
+		claims, err := jwtMgr.ParseAccessToken(raw)
+		if err != nil || claims == nil {
+			return clientIPKey(r)
+		}
+		subject := strings.TrimSpace(claims.Subject)
+		if subject == "" {
+			return clientIPKey(r)
+		}
+		return "sub:" + subject
 	}
 }
 

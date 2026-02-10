@@ -56,7 +56,7 @@ func InitializeApp() (*app.App, error) {
 	adminListCacheStore := provideAdminListCacheStore(configConfig, universalClient)
 	negativeLookupCacheStore := provideNegativeLookupCacheStore(configConfig, universalClient)
 	adminHandler := handler.NewAdminHandler(userService, userRepository, roleRepository, permissionRepository, rbacService, permissionResolver, adminListCacheStore, negativeLookupCacheStore, db, configConfig)
-	globalRateLimiterFunc := provideGlobalRateLimiter(configConfig, universalClient)
+	globalRateLimiterFunc := provideGlobalRateLimiter(configConfig, universalClient, jwtManager)
 	authRateLimiterFunc := provideAuthRateLimiter(configConfig, universalClient)
 	forgotRateLimiterFunc := provideForgotRateLimiter(configConfig, universalClient)
 	idempotencyStore := provideIdempotencyStore(configConfig, db, universalClient)

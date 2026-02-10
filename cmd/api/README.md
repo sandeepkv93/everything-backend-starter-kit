@@ -36,6 +36,13 @@ Scoped endpoints requiring `Idempotency-Key`:
 - `POST /api/v1/admin/roles`
 - `PATCH /api/v1/admin/users/{id}/roles`
 
+## Rate Limiting Keying
+
+- API/global limiter uses fixed-window rate limiting.
+- For requests carrying a valid access token, the limiter key is `sub:<user_id>`.
+- For requests without a valid access token, the limiter key falls back to client IP.
+- Auth and forgot-password limiter scopes keep their existing behavior and failure modes.
+
 ## Audit Taxonomy
 
 The API now emits typed structured audit events with stable keys for security/ops queries:

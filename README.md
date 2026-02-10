@@ -440,6 +440,7 @@ OpenAPI spec:
 - RBAC is permission-based and enforced in route middleware.
 - RBAC permission checks use a short-lived user/session cache with invalidation on RBAC mutations.
 - Auth and API endpoints use separate fixed-window rate limiters.
+- API limiter keys authenticated requests by access-token subject (`sub:<user_id>`) and falls back to client IP when no valid access token is present.
 - Forgot-password rate limiting is Redis-distributed when `RATE_LIMIT_REDIS_ENABLED=true`, with fail-closed fallback semantics for backend errors.
 - Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).
 - Admin list endpoints (`/admin/users`, `/admin/roles`, `/admin/permissions`) use read-through Redis cache with actor-scoped query keys and short TTL.

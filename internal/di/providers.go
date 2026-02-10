@@ -226,18 +226,20 @@ func provideAuthHandler(authSvc service.AuthServiceInterface, cookieMgr *securit
 	return handler.NewAuthHandler(authSvc, cookieMgr, cfg.StateSigningSecret, cfg.JWTRefreshTTL)
 }
 
-func provideGlobalRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.GlobalRateLimiterFunc {
+func provideGlobalRateLimiter(cfg *config.Config, redisClient redis.UniversalClient, jwt *security.JWTManager) router.GlobalRateLimiterFunc {
+	keyFunc := middleware.SubjectOrIPKeyFunc(jwt)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":api")
-		return middleware.NewDistributedRateLimiter(
+		return middleware.NewDistributedRateLimiterWithKey(
 			redisLimiter,
 			cfg.APIRateLimitPerMin,
 			time.Minute,
 			middleware.FailOpen,
 			"api",
+			keyFunc,
 		).Middleware()
 	}
-	return middleware.NewRateLimiter(cfg.APIRateLimitPerMin, time.Minute).Middleware()
+	return middleware.NewRateLimiterWithKey(cfg.APIRateLimitPerMin, time.Minute, keyFunc).Middleware()
 }
 
 func provideAuthRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.AuthRateLimiterFunc {
