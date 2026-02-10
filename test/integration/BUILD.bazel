@@ -15,9 +15,9 @@ go_test(
         "password_reset_test.go",
         "problem_details_test.go",
         "rate_limit_test.go",
-        "redis_race_integration_test.go",
         "rbac_forbidden_test.go",
         "rbac_permission_cache_test.go",
+        "redis_race_integration_test.go",
         "session_management_test.go",
     ],
     deps = [
