@@ -329,6 +329,8 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `RATE_LIMIT_REFRESH_PER_MIN` (default `30`)
 - `RATE_LIMIT_ADMIN_WRITE_PER_MIN` (default `30`)
 - `RATE_LIMIT_ADMIN_SYNC_PER_MIN` (default `10`)
+- `RATE_LIMIT_BURST_MULTIPLIER` (default `1.5`, minimum `1`)
+- `RATE_LIMIT_SUSTAINED_WINDOW` (default `1m`)
 - `RATE_LIMIT_REDIS_ENABLED` (default `true`)
 - `IDEMPOTENCY_ENABLED` (default `true`)
 - `IDEMPOTENCY_REDIS_ENABLED` (default `true`, falls back to DB store when disabled)
@@ -443,9 +445,9 @@ OpenAPI spec:
 - Request IDs are attached through middleware for log correlation.
 - RBAC is permission-based and enforced in route middleware.
 - RBAC permission checks use a short-lived user/session cache with invalidation on RBAC mutations.
-- Auth and API endpoints use separate fixed-window rate limiters.
+- Auth and API endpoints use hybrid token-bucket + sliding-window rate limiters.
 - Rate-limited responses include `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` response headers.
-- Route policy map applies endpoint-specific fixed-window limits for:
+- Route policy map applies endpoint-specific sustained limits with burst capacity for:
   - login (`/api/v1/auth/local/login`)
   - refresh (`/api/v1/auth/refresh`)
   - admin writes (`PATCH /admin/users/{id}/roles`, role/permission write routes)

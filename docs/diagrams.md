@@ -137,7 +137,7 @@ sequenceDiagram
         RL->>RS: INCR window key (ip scoped)
         RS-->>RL: count + ttl
     else fallback path
-        RL->>RL: Local fixed-window check
+        RL->>RL: Local hybrid bucket+window check
     end
     alt over limit or backend error in fail-closed mode
         RL-->>C: 429 RATE_LIMITED (Retry-After + X-RateLimit-*)
@@ -203,7 +203,7 @@ flowchart TD
     P3 --> KeySubOrIP
     P4 --> KeySubOrIP
 
-    KeyIP --> Store[Redis or local fixed-window store]
+    KeyIP --> Store[Redis or local hybrid bucket+window store]
     KeySubOrIP --> Store
     P0 --> Store
     Store --> Decision{Within limit?}

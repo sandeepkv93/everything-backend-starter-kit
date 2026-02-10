@@ -11,7 +11,7 @@ sequenceDiagram
         RL->>RS: INCR window key (ip scoped)
         RS-->>RL: count + ttl
     else fallback path
-        RL->>RL: Local fixed-window check
+        RL->>RL: Local hybrid bucket+window check
     end
     alt over limit or backend error in fail-closed mode
         RL-->>C: 429 RATE_LIMITED (Retry-After + X-RateLimit-*)

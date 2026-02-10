@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -14,11 +15,6 @@ import (
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
 )
 
-type fixedWindow struct {
-	count       int
-	windowStart time.Time
-}
-
 type Decision struct {
 	Allowed    bool
 	RetryAfter time.Duration
@@ -26,8 +22,15 @@ type Decision struct {
 	ResetAt    time.Time
 }
 
+type RateLimitPolicy struct {
+	SustainedLimit    int
+	SustainedWindow   time.Duration
+	BurstCapacity     int
+	BurstRefillPerSec float64
+}
+
 type Limiter interface {
-	Allow(ctx context.Context, key string, limit int, window time.Duration) (Decision, error)
+	Allow(ctx context.Context, key string, policy RateLimitPolicy) (Decision, error)
 }
 
 type FailureMode string
@@ -39,14 +42,19 @@ const (
 
 type localFixedWindowLimiter struct {
 	mu      sync.Mutex
-	store   map[string]*fixedWindow
+	store   map[string]*localHybridState
 	cleanup time.Time
+}
+
+type localHybridState struct {
+	tokens     float64
+	lastRefill time.Time
+	hits       []time.Time
 }
 
 type RateLimiter struct {
 	limiter Limiter
-	limit   int
-	window  time.Duration
+	policy  RateLimitPolicy
 	mode    FailureMode
 	scope   string
 	keyFunc func(r *http.Request) string
@@ -54,21 +62,39 @@ type RateLimiter struct {
 
 func NewLocalFixedWindowLimiter() Limiter {
 	return &localFixedWindowLimiter{
-		store:   make(map[string]*fixedWindow),
+		store:   make(map[string]*localHybridState),
 		cleanup: time.Now().Add(time.Minute),
 	}
 }
 
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-	return NewDistributedRateLimiterWithKey(NewLocalFixedWindowLimiter(), limit, window, FailClosed, "local", nil)
+	return NewDistributedRateLimiterWithKeyAndPolicy(
+		NewLocalFixedWindowLimiter(),
+		newRateLimitPolicy(limit, window, 1.0),
+		FailClosed,
+		"local",
+		nil,
+	)
 }
 
 func NewDistributedRateLimiter(limiter Limiter, limit int, window time.Duration, mode FailureMode, scope string) *RateLimiter {
-	return NewDistributedRateLimiterWithKey(limiter, limit, window, mode, scope, nil)
+	return NewDistributedRateLimiterWithKeyAndPolicy(
+		limiter,
+		newRateLimitPolicy(limit, window, 1.0),
+		mode,
+		scope,
+		nil,
+	)
 }
 
 func NewRateLimiterWithKey(limit int, window time.Duration, keyFunc func(r *http.Request) string) *RateLimiter {
-	return NewDistributedRateLimiterWithKey(NewLocalFixedWindowLimiter(), limit, window, FailClosed, "local", keyFunc)
+	return NewDistributedRateLimiterWithKeyAndPolicy(
+		NewLocalFixedWindowLimiter(),
+		newRateLimitPolicy(limit, window, 1.0),
+		FailClosed,
+		"local",
+		keyFunc,
+	)
 }
 
 func NewDistributedRateLimiterWithKey(
@@ -79,16 +105,36 @@ func NewDistributedRateLimiterWithKey(
 	scope string,
 	keyFunc func(r *http.Request) string,
 ) *RateLimiter {
+	return NewDistributedRateLimiterWithKeyAndPolicy(
+		limiter,
+		newRateLimitPolicy(limit, window, 1.0),
+		mode,
+		scope,
+		keyFunc,
+	)
+}
+
+func NewRateLimiterWithPolicy(policy RateLimitPolicy, keyFunc func(r *http.Request) string) *RateLimiter {
+	return NewDistributedRateLimiterWithKeyAndPolicy(NewLocalFixedWindowLimiter(), policy, FailClosed, "local", keyFunc)
+}
+
+func NewDistributedRateLimiterWithKeyAndPolicy(
+	limiter Limiter,
+	policy RateLimitPolicy,
+	mode FailureMode,
+	scope string,
+	keyFunc func(r *http.Request) string,
+) *RateLimiter {
 	if scope == "" {
 		scope = "api"
 	}
 	if keyFunc == nil {
 		keyFunc = clientIPKey
 	}
+	policy = normalizePolicy(policy)
 	return &RateLimiter{
 		limiter: limiter,
-		limit:   limit,
-		window:  window,
+		policy:  policy,
 		mode:    mode,
 		scope:   scope,
 		keyFunc: keyFunc,
@@ -102,7 +148,7 @@ func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 			if key == "" {
 				key = clientIPKey(r)
 			}
-			decision, err := rl.limiter.Allow(r.Context(), key, rl.limit, rl.window)
+			decision, err := rl.limiter.Allow(r.Context(), key, rl.policy)
 			if err != nil {
 				if rl.mode == FailOpen {
 					slog.Warn("rate limiter backend unavailable, allowing request",
@@ -113,12 +159,12 @@ func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 					return
 				}
-				writeRateLimitHeaders(w.Header(), rl.limit, 0, time.Now().Add(rl.window))
-				w.Header().Set("Retry-After", retryAfterHeader(rl.window))
+				writeRateLimitHeaders(w.Header(), rl.policy.SustainedLimit, 0, time.Now().Add(rl.policy.SustainedWindow))
+				w.Header().Set("Retry-After", retryAfterHeader(rl.policy.SustainedWindow))
 				response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
 				return
 			}
-			writeRateLimitHeaders(w.Header(), rl.limit, decision.Remaining, decision.ResetAt)
+			writeRateLimitHeaders(w.Header(), rl.policy.SustainedLimit, decision.Remaining, decision.ResetAt)
 			if !decision.Allowed {
 				w.Header().Set("Retry-After", retryAfterHeader(decision.RetryAfter))
 				response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
@@ -158,46 +204,92 @@ func SubjectOrIPKeyFunc(jwtMgr *security.JWTManager) func(r *http.Request) strin
 	}
 }
 
-func (rl *localFixedWindowLimiter) Allow(_ context.Context, key string, limit int, window time.Duration) (Decision, error) {
+func (rl *localFixedWindowLimiter) Allow(_ context.Context, key string, policy RateLimitPolicy) (Decision, error) {
+	policy = normalizePolicy(policy)
 	now := time.Now()
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	if now.After(rl.cleanup) {
 		for k, v := range rl.store {
-			if now.Sub(v.windowStart) > 2*window {
+			if len(v.hits) == 0 && now.Sub(v.lastRefill) > 2*policy.SustainedWindow {
 				delete(rl.store, k)
 			}
 		}
-		rl.cleanup = now.Add(window)
+		rl.cleanup = now.Add(policy.SustainedWindow)
 	}
 
-	entry, ok := rl.store[key]
-	if !ok || now.Sub(entry.windowStart) >= window {
-		rl.store[key] = &fixedWindow{count: 1, windowStart: now}
-		return Decision{
-			Allowed:   true,
-			Remaining: max(limit-1, 0),
-			ResetAt:   now.Add(window),
-		}, nil
-	}
-	if entry.count >= limit {
-		retryAfter := window - now.Sub(entry.windowStart)
-		if retryAfter < 0 {
-			retryAfter = 0
+	state, ok := rl.store[key]
+	if !ok {
+		state = &localHybridState{
+			tokens:     float64(policy.BurstCapacity),
+			lastRefill: now,
+			hits:       nil,
 		}
-		return Decision{
-			Allowed:    false,
-			RetryAfter: retryAfter,
-			Remaining:  0,
-			ResetAt:    now.Add(retryAfter),
-		}, nil
+		rl.store[key] = state
 	}
-	entry.count++
+	if now.After(state.lastRefill) {
+		elapsed := now.Sub(state.lastRefill).Seconds()
+		state.tokens = min(float64(policy.BurstCapacity), state.tokens+(elapsed*policy.BurstRefillPerSec))
+		state.lastRefill = now
+	}
+
+	cutoff := now.Add(-policy.SustainedWindow)
+	pruned := state.hits[:0]
+	for _, hit := range state.hits {
+		if hit.After(cutoff) {
+			pruned = append(pruned, hit)
+		}
+	}
+	state.hits = pruned
+
+	sustainedRemaining := policy.SustainedLimit - len(state.hits)
+	bucketRetry := time.Duration(0)
+	if state.tokens < 1 {
+		need := 1 - state.tokens
+		bucketRetry = time.Duration(math.Ceil((need / policy.BurstRefillPerSec) * float64(time.Second)))
+	}
+	sustainedRetry := time.Duration(0)
+	if sustainedRemaining <= 0 {
+		sustainedRetry = state.hits[0].Add(policy.SustainedWindow).Sub(now)
+		if sustainedRetry < 0 {
+			sustainedRetry = 0
+		}
+	}
+
+	allowed := bucketRetry <= 0 && sustainedRetry <= 0
+	if allowed {
+		state.tokens = max(state.tokens-1, 0)
+		state.hits = append(state.hits, now)
+		sustainedRemaining = policy.SustainedLimit - len(state.hits)
+	}
+
+	bucketRemaining := int(math.Floor(state.tokens))
+	if bucketRemaining < 0 {
+		bucketRemaining = 0
+	}
+	if sustainedRemaining < 0 {
+		sustainedRemaining = 0
+	}
+	remaining := min(bucketRemaining, sustainedRemaining)
+	retryAfter := max(bucketRetry, sustainedRetry)
+	if !allowed && retryAfter <= 0 {
+		retryAfter = time.Second
+	}
+
+	resetAt := now.Add(policy.SustainedWindow)
+	if len(state.hits) > 0 {
+		resetAt = state.hits[0].Add(policy.SustainedWindow)
+	}
+	if !allowed {
+		resetAt = now.Add(retryAfter)
+	}
+
 	return Decision{
-		Allowed:   true,
-		Remaining: max(limit-entry.count, 0),
-		ResetAt:   entry.windowStart.Add(window),
+		Allowed:    allowed,
+		RetryAfter: retryAfter,
+		Remaining:  remaining,
+		ResetAt:    resetAt,
 	}, nil
 }
 
@@ -227,4 +319,52 @@ func writeRateLimitHeaders(h http.Header, limit int, remaining int, resetAt time
 		resetAt = time.Now().Add(time.Second)
 	}
 	h.Set("X-RateLimit-Reset", fmt.Sprintf("%d", resetAt.Unix()))
+}
+
+func newRateLimitPolicy(limit int, window time.Duration, burstMultiplier float64) RateLimitPolicy {
+	if limit <= 0 {
+		limit = 1
+	}
+	if window <= 0 {
+		window = time.Minute
+	}
+	if burstMultiplier < 1 {
+		burstMultiplier = 1
+	}
+	burst := int(math.Ceil(float64(limit) * burstMultiplier))
+	if burst < limit {
+		burst = limit
+	}
+	refill := float64(limit) / window.Seconds()
+	if refill <= 0 {
+		refill = 1
+	}
+	return RateLimitPolicy{
+		SustainedLimit:    limit,
+		SustainedWindow:   window,
+		BurstCapacity:     burst,
+		BurstRefillPerSec: refill,
+	}
+}
+
+func normalizePolicy(policy RateLimitPolicy) RateLimitPolicy {
+	if policy.SustainedLimit <= 0 {
+		policy.SustainedLimit = 1
+	}
+	if policy.SustainedWindow <= 0 {
+		policy.SustainedWindow = time.Minute
+	}
+	if policy.BurstCapacity <= 0 {
+		policy.BurstCapacity = policy.SustainedLimit
+	}
+	if policy.BurstCapacity < policy.SustainedLimit {
+		policy.BurstCapacity = policy.SustainedLimit
+	}
+	if policy.BurstRefillPerSec <= 0 {
+		policy.BurstRefillPerSec = float64(policy.SustainedLimit) / policy.SustainedWindow.Seconds()
+	}
+	if policy.BurstRefillPerSec <= 0 {
+		policy.BurstRefillPerSec = 1
+	}
+	return policy
 }

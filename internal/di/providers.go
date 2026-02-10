@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"time"
 
@@ -229,46 +230,48 @@ func provideAuthHandler(authSvc service.AuthServiceInterface, cookieMgr *securit
 
 func provideGlobalRateLimiter(cfg *config.Config, redisClient redis.UniversalClient, jwt *security.JWTManager) router.GlobalRateLimiterFunc {
 	keyFunc := middleware.SubjectOrIPKeyFunc(jwt)
+	policy := toRateLimitPolicy(cfg.APIRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":api")
-		return middleware.NewDistributedRateLimiterWithKey(
+		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
-			cfg.APIRateLimitPerMin,
-			time.Minute,
+			policy,
 			middleware.FailOpen,
 			"api",
 			keyFunc,
 		).Middleware()
 	}
-	return middleware.NewRateLimiterWithKey(cfg.APIRateLimitPerMin, time.Minute, keyFunc).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, keyFunc).Middleware()
 }
 
 func provideAuthRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.AuthRateLimiterFunc {
+	policy := toRateLimitPolicy(cfg.AuthRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth")
-		return middleware.NewDistributedRateLimiter(
+		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
-			cfg.AuthRateLimitPerMin,
-			time.Minute,
+			policy,
 			middleware.FailClosed,
 			"auth",
+			nil,
 		).Middleware()
 	}
-	return middleware.NewRateLimiter(cfg.AuthRateLimitPerMin, time.Minute).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, nil).Middleware()
 }
 
 func provideForgotRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.ForgotRateLimiterFunc {
+	policy := toRateLimitPolicy(cfg.AuthPasswordForgotRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth:forgot")
-		return middleware.NewDistributedRateLimiter(
+		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
-			cfg.AuthPasswordForgotRateLimitPerMin,
-			time.Minute,
+			policy,
 			middleware.FailClosed,
 			"auth_password_forgot",
+			nil,
 		).Middleware()
 	}
-	return middleware.NewRateLimiter(cfg.AuthPasswordForgotRateLimitPerMin, time.Minute).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, nil).Middleware()
 }
 
 func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.UniversalClient, jwt *security.JWTManager) router.RouteRateLimitPolicies {
@@ -322,25 +325,56 @@ func buildRoutePolicyLimiter(
 	scope string,
 	keyFunc func(*http.Request) string,
 ) func(http.Handler) http.Handler {
+	policy := toRateLimitPolicy(limit, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":"+redisSuffix)
-		return middleware.NewDistributedRateLimiterWithKey(
+		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
-			limit,
-			time.Minute,
+			policy,
 			mode,
 			scope,
 			keyFunc,
 		).Middleware()
 	}
-	return middleware.NewDistributedRateLimiterWithKey(
+	return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 		middleware.NewLocalFixedWindowLimiter(),
-		limit,
-		time.Minute,
+		policy,
 		mode,
 		scope,
 		keyFunc,
 	).Middleware()
+}
+
+func toRateLimitPolicy(perMinute int, cfg *config.Config) middleware.RateLimitPolicy {
+	window := cfg.RateLimitSustainedWindow
+	if window <= 0 {
+		window = time.Minute
+	}
+	multiplier := cfg.RateLimitBurstMultiplier
+	if multiplier < 1 {
+		multiplier = 1
+	}
+	sustainedLimit := int(math.Round(float64(perMinute) * window.Minutes()))
+	if sustainedLimit <= 0 {
+		sustainedLimit = 1
+	}
+	burstCapacity := int(math.Ceil(float64(sustainedLimit) * multiplier))
+	if burstCapacity < sustainedLimit {
+		burstCapacity = sustainedLimit
+	}
+	refill := float64(perMinute) / 60.0
+	if refill <= 0 {
+		refill = float64(sustainedLimit) / window.Seconds()
+	}
+	if refill <= 0 {
+		refill = 1
+	}
+	return middleware.RateLimitPolicy{
+		SustainedLimit:    sustainedLimit,
+		SustainedWindow:   window,
+		BurstCapacity:     burstCapacity,
+		BurstRefillPerSec: refill,
+	}
 }
 
 func provideRouterDependencies(

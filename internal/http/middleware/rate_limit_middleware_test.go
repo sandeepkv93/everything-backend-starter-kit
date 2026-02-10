@@ -18,7 +18,7 @@ type mockLimiter struct {
 	err   error
 }
 
-func (m mockLimiter) Allow(context.Context, string, int, time.Duration) (Decision, error) {
+func (m mockLimiter) Allow(context.Context, string, RateLimitPolicy) (Decision, error) {
 	return Decision{
 		Allowed:    m.allow,
 		RetryAfter: m.retry,
@@ -32,12 +32,12 @@ type recordingLimiter struct {
 	allow   bool
 }
 
-func (r *recordingLimiter) Allow(_ context.Context, key string, limit int, window time.Duration) (Decision, error) {
+func (r *recordingLimiter) Allow(_ context.Context, key string, policy RateLimitPolicy) (Decision, error) {
 	r.lastKey = key
 	return Decision{
 		Allowed:   r.allow,
-		Remaining: max(limit-1, 0),
-		ResetAt:   time.Now().Add(window),
+		Remaining: max(policy.SustainedLimit-1, 0),
+		ResetAt:   time.Now().Add(policy.SustainedWindow),
 	}, nil
 }
 
@@ -215,5 +215,39 @@ func TestSubjectOrIPKeyFuncFallsBackToIPWhenTokenInvalid(t *testing.T) {
 	}
 	if limiter.lastKey != "10.0.0.1" {
 		t.Fatalf("expected IP key fallback, got %q", limiter.lastKey)
+	}
+}
+
+func TestRateLimiterWithPolicyBurstThenSustained(t *testing.T) {
+	policy := RateLimitPolicy{
+		SustainedLimit:    2,
+		SustainedWindow:   200 * time.Millisecond,
+		BurstCapacity:     4,
+		BurstRefillPerSec: 100,
+	}
+	rl := NewRateLimiterWithPolicy(policy, nil)
+	h := rl.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/x", nil)
+		req.RemoteAddr = "10.0.0.1:1111"
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected request %d to pass, got %d", i+1, rr.Code)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/x", nil)
+	req.RemoteAddr = "10.0.0.1:1111"
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected sustained limiter to block burst overflow, got %d", rr.Code)
+	}
+	if got := rr.Header().Get("Retry-After"); got == "" {
+		t.Fatal("expected Retry-After on sustained overflow")
 	}
 }

@@ -48,6 +48,8 @@ type Config struct {
 	RateLimitRefreshPerMin       int
 	RateLimitAdminWritePerMin    int
 	RateLimitAdminSyncPerMin     int
+	RateLimitBurstMultiplier     float64
+	RateLimitSustainedWindow     time.Duration
 	AdminListCacheEnabled        bool
 	AdminListCacheTTL            time.Duration
 	AdminListCacheRedisPrefix    string
@@ -126,6 +128,7 @@ func Load() (*Config, error) {
 		RateLimitRefreshPerMin:            getEnvInt("RATE_LIMIT_REFRESH_PER_MIN", 30),
 		RateLimitAdminWritePerMin:         getEnvInt("RATE_LIMIT_ADMIN_WRITE_PER_MIN", 30),
 		RateLimitAdminSyncPerMin:          getEnvInt("RATE_LIMIT_ADMIN_SYNC_PER_MIN", 10),
+		RateLimitBurstMultiplier:          getEnvFloat("RATE_LIMIT_BURST_MULTIPLIER", 1.5),
 		AdminListCacheEnabled:             getEnvBool("ADMIN_LIST_CACHE_ENABLED", true),
 		AdminListCacheRedisPrefix:         getEnv("ADMIN_LIST_CACHE_REDIS_PREFIX", "admin_list_cache"),
 		NegativeLookupCacheEnabled:        getEnvBool("NEGATIVE_LOOKUP_CACHE_ENABLED", true),
@@ -211,6 +214,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("parse RBAC_PERMISSION_CACHE_TTL: %w", err)
 	}
 	cfg.RBACPermissionCacheTTL = rbacPermissionCacheTTL
+
+	rateLimitSustainedWindow, err := time.ParseDuration(getEnv("RATE_LIMIT_SUSTAINED_WINDOW", "1m"))
+	if err != nil {
+		return nil, fmt.Errorf("parse RATE_LIMIT_SUSTAINED_WINDOW: %w", err)
+	}
+	cfg.RateLimitSustainedWindow = rateLimitSustainedWindow
 
 	startGrace, err := time.ParseDuration(getEnv("SERVER_START_GRACE_PERIOD", "2s"))
 	if err != nil {
@@ -313,6 +322,12 @@ func (c *Config) Validate() error {
 	}
 	if c.RateLimitAdminSyncPerMin <= 0 {
 		errs = append(errs, "RATE_LIMIT_ADMIN_SYNC_PER_MIN must be > 0")
+	}
+	if c.RateLimitBurstMultiplier < 1 || c.RateLimitBurstMultiplier > 10 {
+		errs = append(errs, "RATE_LIMIT_BURST_MULTIPLIER must be between 1 and 10")
+	}
+	if c.RateLimitSustainedWindow < time.Second || c.RateLimitSustainedWindow > (15*time.Minute) {
+		errs = append(errs, "RATE_LIMIT_SUSTAINED_WINDOW must be between 1s and 15m")
 	}
 	if c.AdminListCacheEnabled && (c.AdminListCacheTTL <= 0 || c.AdminListCacheTTL > (10*time.Minute)) {
 		errs = append(errs, "ADMIN_LIST_CACHE_TTL must be between 1s and 10m when admin list cache is enabled")

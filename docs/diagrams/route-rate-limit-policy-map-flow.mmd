@@ -18,7 +18,7 @@ flowchart TD
     P3 --> KeySubOrIP
     P4 --> KeySubOrIP
 
-    KeyIP --> Store[Redis or local fixed-window store]
+    KeyIP --> Store[Redis or local hybrid bucket+window store]
     KeySubOrIP --> Store
     P0 --> Store
     Store --> Decision{Within limit?}
