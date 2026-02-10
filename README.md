@@ -123,13 +123,10 @@ Endpoints:
 
 ```bash
 task test
-task test:redis-race
 task ci
 task obs-generate-traffic
 task obs-validate
 ```
-
-`task test:redis-race` runs Redis-container race/replay integration tests and requires Docker.
 
 ## Documentation
 
