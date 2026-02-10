@@ -37,14 +37,78 @@
       ],
       "title": "Request Latency p95",
       "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9},
+      "id": 3,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(redis_command_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le, command))",
+          "legendFormat": "{{command}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Command Latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9},
+      "id": 4,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {
+          "expr": "redis_command_error_rate_ratio{job=\"secure-observable-go-backend-starter-kit\"}",
+          "legendFormat": "error_rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Command Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 18},
+      "id": 5,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {
+          "expr": "redis_pool_saturation_ratio{job=\"secure-observable-go-backend-starter-kit\"}",
+          "legendFormat": "pool_saturation",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Pool Saturation",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 18},
+      "id": 6,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {
+          "expr": "redis_keyspace_hit_ratio_ratio{job=\"secure-observable-go-backend-starter-kit\"}",
+          "legendFormat": "hit_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Keyspace Hit Ratio",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["otel", "api"],
+  "tags": ["otel", "api", "redis"],
   "templating": {"list": []},
   "time": {"from": "now-1h", "to": "now"},
   "title": "API Overview",
   "uid": "api-overview",
-  "version": 1
+  "version": 2
 }

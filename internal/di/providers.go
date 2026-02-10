@@ -195,7 +195,9 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 		}
 		options.TLSConfig = tlsConfig
 	}
-	return redis.NewClient(options)
+	client := redis.NewClient(options)
+	observability.InstrumentRedisClient(client, slog.Default())
+	return client
 }
 
 func composeRedisPrefix(namespace, prefix string) string {

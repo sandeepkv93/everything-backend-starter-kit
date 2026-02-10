@@ -6,6 +6,7 @@ go_library(
         "audit.go",
         "logging.go",
         "metrics.go",
+        "redis_metrics.go",
         "runtime.go",
         "tracing.go",
     ],
@@ -14,6 +15,7 @@ go_library(
     deps = [
         "//internal/config",
         "@com_github_go_chi_chi_v5//middleware",
+        "@com_github_redis_go_redis_v9//:go-redis",
         "@io_opentelemetry_go_contrib_bridges_otelslog//:otelslog",
         "@io_opentelemetry_go_otel//:otel",
         "@io_opentelemetry_go_otel//attribute",
@@ -33,6 +35,9 @@ go_library(
 
 go_test(
     name = "observability_test",
-    srcs = ["audit_test.go"],
+    srcs = [
+        "audit_test.go",
+        "redis_metrics_test.go",
+    ],
     embed = [":observability"],
 )

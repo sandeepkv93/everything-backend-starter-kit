@@ -713,6 +713,18 @@ The validation command checks:
 - trace retrievable in Tempo
 - correlated trace log retrievable in Loki
 
+### Redis Observability Metrics
+
+Redis client instrumentation exports:
+
+- `redis.command.duration` (histogram, seconds) with `command` and `status` labels
+- `redis.command.total` (counter)
+- `redis.command.errors` (counter) with error type labels
+- `redis.command.error_rate` (gauge)
+- `redis.pool.saturation` (gauge, used/total connections)
+- `redis.keyspace.hits` / `redis.keyspace.misses` (counters)
+- `redis.keyspace.hit_ratio` (gauge)
+
 ## Troubleshooting
 
 ### App fails to start with config validation errors
