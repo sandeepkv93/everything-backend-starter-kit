@@ -2,10 +2,14 @@ package di
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/wire"
@@ -150,8 +154,9 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 		!cfg.RBACPermissionCacheEnabled {
 		return nil
 	}
-	return redis.NewClient(&redis.Options{
+	options := &redis.Options{
 		Addr:            cfg.RedisAddr,
+		Username:        cfg.RedisUsername,
 		Password:        cfg.RedisPassword,
 		DB:              cfg.RedisDB,
 		DialTimeout:     cfg.RedisDialTimeout,
@@ -163,7 +168,34 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 		PoolSize:        cfg.RedisPoolSize,
 		MinIdleConns:    cfg.RedisMinIdleConns,
 		PoolTimeout:     cfg.RedisPoolTimeout,
-	})
+	}
+	if cfg.RedisTLSEnabled {
+		tlsConfig := &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			ServerName: strings.TrimSpace(cfg.RedisTLSServerName),
+			// #nosec G402 -- Explicit operator-controlled toggle; validation blocks it for non-local envs.
+			InsecureSkipVerify: cfg.RedisTLSInsecureSkipVerify,
+		}
+		if certPath := strings.TrimSpace(cfg.RedisTLSCACertFile); certPath != "" {
+			// #nosec G304 -- Path is operator-provided configuration and validated at startup.
+			pemBytes, err := os.ReadFile(certPath)
+			if err != nil {
+				slog.Warn("redis tls ca cert file unreadable, falling back to system roots", "path", certPath, "error", err.Error())
+			} else {
+				pool, err := x509.SystemCertPool()
+				if err != nil || pool == nil {
+					pool = x509.NewCertPool()
+				}
+				if !pool.AppendCertsFromPEM(pemBytes) {
+					slog.Warn("redis tls ca cert file contains no valid certs, falling back to system roots", "path", certPath)
+				} else {
+					tlsConfig.RootCAs = pool
+				}
+			}
+		}
+		options.TLSConfig = tlsConfig
+	}
+	return redis.NewClient(options)
 }
 
 func provideRBACPermissionCacheStore(cfg *config.Config, redisClient redis.UniversalClient) service.RBACPermissionCacheStore {

@@ -351,7 +351,11 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `NEGATIVE_LOOKUP_CACHE_TTL` (default `15s`)
 - `RBAC_PERMISSION_CACHE_ENABLED` (default `true`)
 - `RBAC_PERMISSION_CACHE_TTL` (default `5m`)
-- `REDIS_ADDR`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`, `AUTH_ABUSE_REDIS_PREFIX`
+- `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`, `AUTH_ABUSE_REDIS_PREFIX`
+- `REDIS_TLS_ENABLED` (default `false`)
+- `REDIS_TLS_SERVER_NAME` (required in non-local env when Redis-backed features are enabled)
+- `REDIS_TLS_CA_CERT_FILE` (optional PEM CA bundle path)
+- `REDIS_TLS_INSECURE_SKIP_VERIFY` (default `false`, blocked in non-local env)
 - `REDIS_DIAL_TIMEOUT` (default `5s`)
 - `REDIS_READ_TIMEOUT` (default `3s`)
 - `REDIS_WRITE_TIMEOUT` (default `3s`)
@@ -406,6 +410,7 @@ OTel:
 - restricted samesite (`lax` or `strict`)
 - Redis-backed rate limiting enabled
 - non-loopback Redis address
+- Redis ACL and TLS are enforced for non-local environments (`REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_TLS_ENABLED=true`, `REDIS_TLS_SERVER_NAME`)
 - bounded sampling ratio (`OTEL_TRACE_SAMPLING_RATIO <= 0.2`)
 - non-placeholder secrets
 

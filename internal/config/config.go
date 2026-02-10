@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -77,8 +78,13 @@ type Config struct {
 	IdempotencyTTL               time.Duration
 	IdempotencyRedisPrefix       string
 	RedisAddr                    string
+	RedisUsername                string
 	RedisPassword                string
 	RedisDB                      int
+	RedisTLSEnabled              bool
+	RedisTLSServerName           string
+	RedisTLSCACertFile           string
+	RedisTLSInsecureSkipVerify   bool
 	RedisDialTimeout             time.Duration
 	RedisReadTimeout             time.Duration
 	RedisWriteTimeout            time.Duration
@@ -167,8 +173,13 @@ func Load() (*Config, error) {
 		IdempotencyEnabled:                getEnvBool("IDEMPOTENCY_ENABLED", true),
 		IdempotencyRedisEnabled:           getEnvBool("IDEMPOTENCY_REDIS_ENABLED", true),
 		RedisAddr:                         getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisUsername:                     strings.TrimSpace(os.Getenv("REDIS_USERNAME")),
 		RedisPassword:                     os.Getenv("REDIS_PASSWORD"),
 		RedisDB:                           getEnvInt("REDIS_DB", 0),
+		RedisTLSEnabled:                   getEnvBool("REDIS_TLS_ENABLED", false),
+		RedisTLSServerName:                strings.TrimSpace(os.Getenv("REDIS_TLS_SERVER_NAME")),
+		RedisTLSCACertFile:                strings.TrimSpace(os.Getenv("REDIS_TLS_CA_CERT_FILE")),
+		RedisTLSInsecureSkipVerify:        getEnvBool("REDIS_TLS_INSECURE_SKIP_VERIFY", false),
 		RedisMaxRetries:                   getEnvInt("REDIS_MAX_RETRIES", 3),
 		RedisPoolSize:                     getEnvInt("REDIS_POOL_SIZE", 10),
 		RedisMinIdleConns:                 getEnvInt("REDIS_MIN_IDLE_CONNS", 2),
@@ -451,8 +462,36 @@ func (c *Config) Validate() error {
 	if c.IdempotencyTTL <= 0 || c.IdempotencyTTL > (7*24*time.Hour) {
 		errs = append(errs, "IDEMPOTENCY_TTL must be between 1s and 168h")
 	}
-	if (c.RateLimitRedisEnabled || (c.IdempotencyEnabled && c.IdempotencyRedisEnabled) || c.AdminListCacheEnabled || c.NegativeLookupCacheEnabled || c.RBACPermissionCacheEnabled) && strings.TrimSpace(c.RedisAddr) == "" {
+	redisRequired := c.RateLimitRedisEnabled ||
+		c.AuthAbuseProtectionEnabled ||
+		(c.IdempotencyEnabled && c.IdempotencyRedisEnabled) ||
+		c.AdminListCacheEnabled ||
+		c.NegativeLookupCacheEnabled ||
+		c.RBACPermissionCacheEnabled
+	if redisRequired && strings.TrimSpace(c.RedisAddr) == "" {
 		errs = append(errs, "REDIS_ADDR is required when Redis-backed features are enabled")
+	}
+	if !c.RedisTLSEnabled {
+		if c.RedisTLSServerName != "" {
+			errs = append(errs, "REDIS_TLS_SERVER_NAME requires REDIS_TLS_ENABLED=true")
+		}
+		if c.RedisTLSCACertFile != "" {
+			errs = append(errs, "REDIS_TLS_CA_CERT_FILE requires REDIS_TLS_ENABLED=true")
+		}
+		if c.RedisTLSInsecureSkipVerify {
+			errs = append(errs, "REDIS_TLS_INSECURE_SKIP_VERIFY requires REDIS_TLS_ENABLED=true")
+		}
+	}
+	if c.RedisTLSCACertFile != "" {
+		pemBytes, err := os.ReadFile(c.RedisTLSCACertFile)
+		if err != nil {
+			errs = append(errs, "REDIS_TLS_CA_CERT_FILE must be readable")
+		} else {
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM(pemBytes) {
+				errs = append(errs, "REDIS_TLS_CA_CERT_FILE must contain valid PEM certificates")
+			}
+		}
 	}
 	if c.RedisDialTimeout < (100*time.Millisecond) || c.RedisDialTimeout > (30*time.Second) {
 		errs = append(errs, "REDIS_DIAL_TIMEOUT must be between 100ms and 30s")
@@ -532,6 +571,23 @@ func (c *Config) Validate() error {
 		if looksPlaceholder(c.JWTAccessSecret) || looksPlaceholder(c.JWTRefreshSecret) ||
 			looksPlaceholder(c.RefreshTokenPepper) || looksPlaceholder(c.StateSigningSecret) {
 			errs = append(errs, "secrets must not use placeholder values in production/staging")
+		}
+	}
+	if redisRequired && !isLocalLikeEnv(c.Env) {
+		if strings.TrimSpace(c.RedisUsername) == "" {
+			errs = append(errs, "REDIS_USERNAME is required in non-local environments when Redis-backed features are enabled")
+		}
+		if strings.TrimSpace(c.RedisPassword) == "" {
+			errs = append(errs, "REDIS_PASSWORD is required in non-local environments when Redis-backed features are enabled")
+		}
+		if !c.RedisTLSEnabled {
+			errs = append(errs, "REDIS_TLS_ENABLED must be true in non-local environments when Redis-backed features are enabled")
+		}
+		if strings.TrimSpace(c.RedisTLSServerName) == "" {
+			errs = append(errs, "REDIS_TLS_SERVER_NAME is required in non-local environments when REDIS_TLS_ENABLED=true")
+		}
+		if c.RedisTLSInsecureSkipVerify {
+			errs = append(errs, "REDIS_TLS_INSECURE_SKIP_VERIFY must be false in non-local environments")
 		}
 	}
 	if len(errs) > 0 {

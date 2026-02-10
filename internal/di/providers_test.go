@@ -338,6 +338,10 @@ func TestProvideRedisClientEnabledForAdminListCache(t *testing.T) {
 		NegativeLookupCacheEnabled: false,
 		RateLimitRedisEnabled:      false,
 		IdempotencyEnabled:         false,
+		RedisUsername:              "redis-user",
+		RedisPassword:              "redis-pass",
+		RedisTLSEnabled:            true,
+		RedisTLSServerName:         "redis.internal.local",
 		RedisDialTimeout:           5 * time.Second,
 		RedisReadTimeout:           3 * time.Second,
 		RedisWriteTimeout:          3 * time.Second,
@@ -390,6 +394,18 @@ func TestProvideRedisClientEnabledForAdminListCache(t *testing.T) {
 	}
 	if opts.PoolTimeout != cfg.RedisPoolTimeout {
 		t.Fatalf("expected redis pool timeout %v, got %v", cfg.RedisPoolTimeout, opts.PoolTimeout)
+	}
+	if opts.Username != cfg.RedisUsername {
+		t.Fatalf("expected redis username %q, got %q", cfg.RedisUsername, opts.Username)
+	}
+	if opts.Password != cfg.RedisPassword {
+		t.Fatalf("expected redis password %q, got %q", cfg.RedisPassword, opts.Password)
+	}
+	if opts.TLSConfig == nil {
+		t.Fatal("expected redis tls config when REDIS_TLS_ENABLED=true")
+	}
+	if opts.TLSConfig.ServerName != cfg.RedisTLSServerName {
+		t.Fatalf("expected redis tls server name %q, got %q", cfg.RedisTLSServerName, opts.TLSConfig.ServerName)
 	}
 
 	cfg.AdminListCacheEnabled = false
