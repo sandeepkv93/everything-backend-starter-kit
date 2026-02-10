@@ -455,3 +455,15 @@ func TestProvideRequestBypassEvaluator(t *testing.T) {
 		t.Fatal("expected bypass for trusted probe request")
 	}
 }
+
+func TestComposeRedisPrefix(t *testing.T) {
+	if got := composeRedisPrefix("v1", "rl"); got != "v1:rl" {
+		t.Fatalf("expected v1:rl, got %q", got)
+	}
+	if got := composeRedisPrefix("", "idem"); got != "v1:idem" {
+		t.Fatalf("expected v1:idem when namespace empty, got %q", got)
+	}
+	if got := composeRedisPrefix("v2", ""); got != "v2" {
+		t.Fatalf("expected v2 when prefix empty, got %q", got)
+	}
+}

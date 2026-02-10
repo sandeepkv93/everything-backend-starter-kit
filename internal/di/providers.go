@@ -198,6 +198,18 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 	return redis.NewClient(options)
 }
 
+func composeRedisPrefix(namespace, prefix string) string {
+	ns := strings.TrimSpace(namespace)
+	if ns == "" {
+		ns = "v1"
+	}
+	p := strings.TrimSpace(prefix)
+	if p == "" {
+		return ns
+	}
+	return ns + ":" + p
+}
+
 func provideRBACPermissionCacheStore(cfg *config.Config, redisClient redis.UniversalClient) service.RBACPermissionCacheStore {
 	if !cfg.RBACPermissionCacheEnabled {
 		return service.NewNoopRBACPermissionCacheStore()
@@ -205,7 +217,7 @@ func provideRBACPermissionCacheStore(cfg *config.Config, redisClient redis.Unive
 	if redisClient == nil {
 		return service.NewNoopRBACPermissionCacheStore()
 	}
-	return service.NewRedisRBACPermissionCacheStore(redisClient, cfg.RBACPermissionCacheRedisPref)
+	return service.NewRedisRBACPermissionCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.RBACPermissionCacheRedisPref))
 }
 
 func providePermissionResolver(cfg *config.Config, userSvc service.UserServiceInterface, store service.RBACPermissionCacheStore) service.PermissionResolver {
@@ -219,7 +231,7 @@ func provideAdminListCacheStore(cfg *config.Config, redisClient redis.UniversalC
 	if redisClient == nil {
 		return service.NewNoopAdminListCacheStore()
 	}
-	return service.NewRedisAdminListCacheStore(redisClient, cfg.AdminListCacheRedisPrefix)
+	return service.NewRedisAdminListCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.AdminListCacheRedisPrefix))
 }
 
 func provideNegativeLookupCacheStore(cfg *config.Config, redisClient redis.UniversalClient) service.NegativeLookupCacheStore {
@@ -229,7 +241,7 @@ func provideNegativeLookupCacheStore(cfg *config.Config, redisClient redis.Unive
 	if redisClient == nil {
 		return service.NewNoopNegativeLookupCacheStore()
 	}
-	return service.NewRedisNegativeLookupCacheStore(redisClient, cfg.NegativeLookupCacheRedisPref)
+	return service.NewRedisNegativeLookupCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.NegativeLookupCacheRedisPref))
 }
 
 func provideIdempotencyStore(cfg *config.Config, db *gorm.DB, redisClient redis.UniversalClient) service.IdempotencyStore {
@@ -237,7 +249,7 @@ func provideIdempotencyStore(cfg *config.Config, db *gorm.DB, redisClient redis.
 		return nil
 	}
 	if cfg.IdempotencyRedisEnabled && redisClient != nil {
-		return service.NewRedisIdempotencyStore(redisClient, cfg.IdempotencyRedisPrefix)
+		return service.NewRedisIdempotencyStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.IdempotencyRedisPrefix))
 	}
 	return service.NewDBIdempotencyStore(db)
 }
@@ -280,7 +292,7 @@ func provideAuthAbuseGuard(cfg *config.Config, redisClient redis.UniversalClient
 		ResetWindow:  cfg.AuthAbuseResetWindow,
 	}
 	if redisClient != nil {
-		return service.NewRedisAuthAbuseGuard(redisClient, cfg.AuthAbuseRedisPrefix, policy)
+		return service.NewRedisAuthAbuseGuard(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.AuthAbuseRedisPrefix), policy)
 	}
 	return service.NewInMemoryAuthAbuseGuard(policy)
 }
@@ -312,8 +324,9 @@ func provideGlobalRateLimiter(
 ) router.GlobalRateLimiterFunc {
 	keyFunc := middleware.SubjectOrIPKeyFunc(jwt)
 	policy := toRateLimitPolicy(cfg.APIRateLimitPerMin, cfg)
+	rateLimitPrefix := composeRedisPrefix(cfg.RedisKeyNamespace, cfg.RateLimitRedisPrefix)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
-		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":api")
+		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, rateLimitPrefix+":api")
 		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
 			policy,
@@ -331,8 +344,9 @@ func provideAuthRateLimiter(
 	bypassEvaluator middleware.BypassEvaluator,
 ) router.AuthRateLimiterFunc {
 	policy := toRateLimitPolicy(cfg.AuthRateLimitPerMin, cfg)
+	rateLimitPrefix := composeRedisPrefix(cfg.RedisKeyNamespace, cfg.RateLimitRedisPrefix)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
-		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth")
+		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, rateLimitPrefix+":auth")
 		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
 			policy,
@@ -350,8 +364,9 @@ func provideForgotRateLimiter(
 	bypassEvaluator middleware.BypassEvaluator,
 ) router.ForgotRateLimiterFunc {
 	policy := toRateLimitPolicy(cfg.AuthPasswordForgotRateLimitPerMin, cfg)
+	rateLimitPrefix := composeRedisPrefix(cfg.RedisKeyNamespace, cfg.RateLimitRedisPrefix)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
-		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth:forgot")
+		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, rateLimitPrefix+":auth:forgot")
 		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
 			policy,
@@ -425,8 +440,9 @@ func buildRoutePolicyLimiter(
 	bypassEvaluator middleware.BypassEvaluator,
 ) func(http.Handler) http.Handler {
 	policy := toRateLimitPolicy(limit, cfg)
+	rateLimitPrefix := composeRedisPrefix(cfg.RedisKeyNamespace, cfg.RateLimitRedisPrefix)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
-		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":"+redisSuffix)
+		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, rateLimitPrefix+":"+redisSuffix)
 		return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 			redisLimiter,
 			policy,

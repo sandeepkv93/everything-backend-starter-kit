@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var redisNamespacePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)
 
 type Config struct {
 	Env      string
@@ -77,6 +80,7 @@ type Config struct {
 	IdempotencyRedisEnabled      bool
 	IdempotencyTTL               time.Duration
 	IdempotencyRedisPrefix       string
+	RedisKeyNamespace            string
 	RedisAddr                    string
 	RedisUsername                string
 	RedisPassword                string
@@ -172,6 +176,7 @@ func Load() (*Config, error) {
 		RateLimitRedisEnabled:             getEnvBool("RATE_LIMIT_REDIS_ENABLED", true),
 		IdempotencyEnabled:                getEnvBool("IDEMPOTENCY_ENABLED", true),
 		IdempotencyRedisEnabled:           getEnvBool("IDEMPOTENCY_REDIS_ENABLED", true),
+		RedisKeyNamespace:                 getEnv("REDIS_KEY_NAMESPACE", "v1"),
 		RedisAddr:                         getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisUsername:                     strings.TrimSpace(os.Getenv("REDIS_USERNAME")),
 		RedisPassword:                     os.Getenv("REDIS_PASSWORD"),
@@ -461,6 +466,9 @@ func (c *Config) Validate() error {
 	}
 	if c.IdempotencyTTL <= 0 || c.IdempotencyTTL > (7*24*time.Hour) {
 		errs = append(errs, "IDEMPOTENCY_TTL must be between 1s and 168h")
+	}
+	if ns := strings.TrimSpace(c.RedisKeyNamespace); ns != "" && !redisNamespacePattern.MatchString(ns) {
+		errs = append(errs, "REDIS_KEY_NAMESPACE must match ^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 	}
 	redisRequired := c.RateLimitRedisEnabled ||
 		c.AuthAbuseProtectionEnabled ||

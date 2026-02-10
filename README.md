@@ -351,6 +351,7 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `NEGATIVE_LOOKUP_CACHE_TTL` (default `15s`)
 - `RBAC_PERMISSION_CACHE_ENABLED` (default `true`)
 - `RBAC_PERMISSION_CACHE_TTL` (default `5m`)
+- `REDIS_KEY_NAMESPACE` (default `v1`; prepended to Redis feature prefixes, e.g. `v1:rl:*`, `v1:idem:*`)
 - `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`, `AUTH_ABUSE_REDIS_PREFIX`
 - `REDIS_TLS_ENABLED` (default `false`)
 - `REDIS_TLS_SERVER_NAME` (required in non-local env when Redis-backed features are enabled)
@@ -481,6 +482,7 @@ OpenAPI spec:
   - password forgot requests (`POST /api/v1/auth/local/password/forgot`)
 - Internal health probes (`/health/live`, `/health/ready`) can bypass limiter and abuse checks when `AUTH_BYPASS_INTERNAL_PROBES=true`.
 - Trusted system actors can bypass limiter/abuse checks via explicit allowlist on CIDR and/or JWT subject (`AUTH_BYPASS_TRUSTED_ACTORS=true` with trusted values configured).
+- Redis-backed features use namespaced versioned keys (`REDIS_KEY_NAMESPACE`, default `v1`) to support safe key schema evolution.
 - API limiter keys authenticated requests by access-token subject (`sub:<user_id>`) and falls back to client IP when no valid access token is present.
 - Forgot-password rate limiting is Redis-distributed when `RATE_LIMIT_REDIS_ENABLED=true`, with fail-closed fallback semantics for backend errors.
 - Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).
