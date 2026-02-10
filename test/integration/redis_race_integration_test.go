@@ -3,10 +3,11 @@ package integration
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -226,8 +227,13 @@ func startRedisContainer(t *testing.T) (*redis.Client, func()) {
 	}
 
 	hostPort := reserveLocalPort(t)
-	containerName := "sogbsk-redis-it-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "-" + strconv.Itoa(rand.Intn(1000))
+	nonce, err := cryptoRandInt(1000000)
+	if err != nil {
+		t.Fatalf("generate redis container nonce: %v", err)
+	}
+	containerName := "sogbsk-redis-it-" + strconv.FormatInt(time.Now().UnixNano(), 10) + "-" + strconv.Itoa(nonce)
 
+	// #nosec G204 -- Integration test launches local Docker with controlled fixed argv, no shell expansion.
 	runCmd := exec.Command("docker", "run", "-d", "--rm",
 		"--name", containerName,
 		"-p", fmt.Sprintf("127.0.0.1:%d:6379", hostPort),
@@ -245,6 +251,7 @@ func startRedisContainer(t *testing.T) (*redis.Client, func()) {
 	for {
 		if time.Now().After(deadline) {
 			_ = client.Close()
+			// #nosec G204 -- Integration test cleanup command uses deterministic container name generated in-process.
 			_ = exec.Command("docker", "rm", "-f", containerName).Run()
 			t.Fatalf("timed out waiting for redis container %s to become ready", containerName)
 		}
@@ -256,6 +263,7 @@ func startRedisContainer(t *testing.T) (*redis.Client, func()) {
 
 	cleanup := func() {
 		_ = client.Close()
+		// #nosec G204 -- Integration test cleanup command uses deterministic container name generated in-process.
 		_ = exec.Command("docker", "rm", "-f", containerName).Run()
 	}
 	return client, cleanup
@@ -278,4 +286,12 @@ func reserveLocalPort(t *testing.T) int {
 		t.Fatalf("unexpected addr type %T", l.Addr())
 	}
 	return addr.Port
+}
+
+func cryptoRandInt(max int64) (int, error) {
+	n, err := crand.Int(crand.Reader, big.NewInt(max))
+	if err != nil {
+		return 0, err
+	}
+	return int(n.Int64()), nil
 }
