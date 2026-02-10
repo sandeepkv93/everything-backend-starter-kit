@@ -58,7 +58,7 @@ func TestProvideRouteRateLimitPolicies(t *testing.T) {
 		"abcdefghijklmnopqrstuvwxyz123456",
 		"abcdefghijklmnopqrstuvwxyz654321",
 	)
-	policies := provideRouteRateLimitPolicies(cfg, nil, jwt)
+	policies := provideRouteRateLimitPolicies(cfg, nil, jwt, nil)
 	if policies == nil {
 		t.Fatal("expected route policies")
 	}
@@ -90,7 +90,7 @@ func TestRoutePolicyLoginLimiterEnforcesLimit(t *testing.T) {
 		"abcdefghijklmnopqrstuvwxyz123456",
 		"abcdefghijklmnopqrstuvwxyz654321",
 	)
-	policies := provideRouteRateLimitPolicies(cfg, nil, jwt)
+	policies := provideRouteRateLimitPolicies(cfg, nil, jwt, nil)
 	loginLimiter := policies[router.RoutePolicyLogin]
 	if loginLimiter == nil {
 		t.Fatal("expected login limiter")
@@ -139,7 +139,7 @@ func TestRoutePolicyAdminWriteUsesSubjectKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sign token2: %v", err)
 	}
-	policies := provideRouteRateLimitPolicies(cfg, nil, jwt)
+	policies := provideRouteRateLimitPolicies(cfg, nil, jwt, nil)
 	adminWrite := policies[router.RoutePolicyAdminWrite]
 	if adminWrite == nil {
 		t.Fatal("expected admin write limiter")
@@ -182,7 +182,7 @@ func TestBuildRoutePolicyLimiterUsesFallbackKeyWhenEmpty(t *testing.T) {
 	}
 	mw := buildRoutePolicyLimiter(cfg, nil, "x", 1, middleware.FailClosed, "scope", func(*http.Request) string {
 		return ""
-	})
+	}, nil)
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -210,7 +210,7 @@ func TestProvideGlobalRateLimiterUsesSubjectOrIP(t *testing.T) {
 		"abcdefghijklmnopqrstuvwxyz123456",
 		"abcdefghijklmnopqrstuvwxyz654321",
 	)
-	limiter := provideGlobalRateLimiter(cfg, nil, jwt)
+	limiter := provideGlobalRateLimiter(cfg, nil, jwt, nil)
 	if limiter == nil {
 		t.Fatal("expected global limiter")
 	}
@@ -266,7 +266,7 @@ func TestRoutePoliciesNoRedisDoNotRequireContext(t *testing.T) {
 		"abcdefghijklmnopqrstuvwxyz123456",
 		"abcdefghijklmnopqrstuvwxyz654321",
 	)
-	policies := provideRouteRateLimitPolicies(cfg, nil, jwt)
+	policies := provideRouteRateLimitPolicies(cfg, nil, jwt, nil)
 	for name, mw := range policies {
 		if mw == nil {
 			t.Fatalf("policy %s is nil", name)
@@ -285,7 +285,7 @@ func TestProvideForgotRateLimiterFallback(t *testing.T) {
 		RateLimitRedisEnabled:             false,
 		AuthPasswordForgotRateLimitPerMin: 5,
 	}
-	mw := provideForgotRateLimiter(cfg, nil)
+	mw := provideForgotRateLimiter(cfg, nil, nil)
 	if mw == nil {
 		t.Fatal("expected forgot rate limiter middleware")
 	}
@@ -298,7 +298,7 @@ func TestProvideForgotRateLimiterRedisFailClosed(t *testing.T) {
 		AuthPasswordForgotRateLimitPerMin: 5,
 	}
 	client := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
-	mw := provideForgotRateLimiter(cfg, client)
+	mw := provideForgotRateLimiter(cfg, client, nil)
 	if mw == nil {
 		t.Fatal("expected forgot rate limiter middleware")
 	}
@@ -378,5 +378,23 @@ func TestProvideAuthAbuseGuard(t *testing.T) {
 	guard = provideAuthAbuseGuard(cfg, nil)
 	if guard == nil {
 		t.Fatal("expected noop auth abuse guard when disabled")
+	}
+}
+
+func TestProvideRequestBypassEvaluator(t *testing.T) {
+	cfg := &config.Config{
+		BypassInternalProbes:    true,
+		BypassTrustedActors:     true,
+		BypassTrustedActorCIDRs: []string{"10.80.0.0/16"},
+	}
+	evaluator := provideRequestBypassEvaluator(cfg, nil)
+	if evaluator == nil {
+		t.Fatal("expected bypass evaluator")
+	}
+	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
+	req.RemoteAddr = "10.80.1.20:1234"
+	bypass, _ := evaluator(req)
+	if !bypass {
+		t.Fatal("expected bypass for trusted probe request")
 	}
 }

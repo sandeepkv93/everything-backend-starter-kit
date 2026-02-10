@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -53,11 +51,12 @@ type localHybridState struct {
 }
 
 type RateLimiter struct {
-	limiter Limiter
-	policy  RateLimitPolicy
-	mode    FailureMode
-	scope   string
-	keyFunc func(r *http.Request) string
+	limiter         Limiter
+	policy          RateLimitPolicy
+	mode            FailureMode
+	scope           string
+	keyFunc         func(r *http.Request) string
+	bypassEvaluator BypassEvaluator
 }
 
 func NewLocalFixedWindowLimiter() Limiter {
@@ -144,6 +143,13 @@ func NewDistributedRateLimiterWithKeyAndPolicy(
 func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if rl.bypassEvaluator != nil {
+				if bypass, reason := rl.bypassEvaluator(r); bypass {
+					slog.Debug("rate limiter bypass applied", "scope", rl.scope, "reason", reason, "path", r.URL.Path)
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
 			key := rl.keyFunc(r)
 			if key == "" {
 				key = clientIPKey(r)
@@ -175,28 +181,18 @@ func (rl *RateLimiter) Middleware() func(http.Handler) http.Handler {
 	}
 }
 
+func (rl *RateLimiter) WithBypassEvaluator(bypassEvaluator BypassEvaluator) *RateLimiter {
+	rl.bypassEvaluator = bypassEvaluator
+	return rl
+}
+
 func SubjectOrIPKeyFunc(jwtMgr *security.JWTManager) func(r *http.Request) string {
 	return func(r *http.Request) string {
 		if jwtMgr == nil {
 			return clientIPKey(r)
 		}
 
-		raw := security.GetCookie(r, "access_token")
-		if raw == "" {
-			auth := strings.TrimSpace(r.Header.Get("Authorization"))
-			if len(auth) >= len("bearer ")+1 && strings.EqualFold(auth[:len("bearer ")], "bearer ") {
-				raw = strings.TrimSpace(auth[len("bearer "):])
-			}
-		}
-		if raw == "" {
-			return clientIPKey(r)
-		}
-
-		claims, err := jwtMgr.ParseAccessToken(raw)
-		if err != nil || claims == nil {
-			return clientIPKey(r)
-		}
-		subject := strings.TrimSpace(claims.Subject)
+		subject := requestSubject(r, jwtMgr)
 		if subject == "" {
 			return clientIPKey(r)
 		}
@@ -294,9 +290,9 @@ func (rl *localFixedWindowLimiter) Allow(_ context.Context, key string, policy R
 }
 
 func clientIPKey(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil && host != "" {
-		return host
+	ip := parseRequestIP(r)
+	if ip != nil {
+		return ip.String()
 	}
 	return r.RemoteAddr
 }

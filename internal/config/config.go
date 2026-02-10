@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -57,6 +58,10 @@ type Config struct {
 	AuthAbuseMaxDelay            time.Duration
 	AuthAbuseResetWindow         time.Duration
 	AuthAbuseRedisPrefix         string
+	BypassInternalProbes         bool
+	BypassTrustedActors          bool
+	BypassTrustedActorCIDRs      []string
+	BypassTrustedActorSubjects   []string
 	AdminListCacheEnabled        bool
 	AdminListCacheTTL            time.Duration
 	AdminListCacheRedisPrefix    string
@@ -139,6 +144,10 @@ func Load() (*Config, error) {
 		AuthAbuseProtectionEnabled:        getEnvBool("AUTH_ABUSE_PROTECTION_ENABLED", true),
 		AuthAbuseFreeAttempts:             getEnvInt("AUTH_ABUSE_FREE_ATTEMPTS", 3),
 		AuthAbuseMultiplier:               getEnvFloat("AUTH_ABUSE_MULTIPLIER", 2.0),
+		BypassInternalProbes:              getEnvBool("AUTH_BYPASS_INTERNAL_PROBES", true),
+		BypassTrustedActors:               getEnvBool("AUTH_BYPASS_TRUSTED_ACTORS", false),
+		BypassTrustedActorCIDRs:           splitCSV(getEnv("AUTH_BYPASS_TRUSTED_ACTOR_CIDRS", "")),
+		BypassTrustedActorSubjects:        splitCSV(getEnv("AUTH_BYPASS_TRUSTED_ACTOR_SUBJECTS", "")),
 		AdminListCacheEnabled:             getEnvBool("ADMIN_LIST_CACHE_ENABLED", true),
 		AdminListCacheRedisPrefix:         getEnv("ADMIN_LIST_CACHE_REDIS_PREFIX", "admin_list_cache"),
 		NegativeLookupCacheEnabled:        getEnvBool("NEGATIVE_LOOKUP_CACHE_ENABLED", true),
@@ -372,6 +381,15 @@ func (c *Config) Validate() error {
 	}
 	if c.AuthAbuseResetWindow < time.Minute || c.AuthAbuseResetWindow > (24*time.Hour) {
 		errs = append(errs, "AUTH_ABUSE_RESET_WINDOW must be between 1m and 24h")
+	}
+	for _, cidr := range c.BypassTrustedActorCIDRs {
+		if _, _, err := net.ParseCIDR(strings.TrimSpace(cidr)); err != nil {
+			errs = append(errs, "AUTH_BYPASS_TRUSTED_ACTOR_CIDRS must contain valid CIDR values")
+			break
+		}
+	}
+	if c.BypassTrustedActors && len(c.BypassTrustedActorCIDRs) == 0 && len(c.BypassTrustedActorSubjects) == 0 {
+		errs = append(errs, "AUTH_BYPASS_TRUSTED_ACTORS requires AUTH_BYPASS_TRUSTED_ACTOR_CIDRS or AUTH_BYPASS_TRUSTED_ACTOR_SUBJECTS")
 	}
 	if c.AdminListCacheEnabled && (c.AdminListCacheTTL <= 0 || c.AdminListCacheTTL > (10*time.Minute)) {
 		errs = append(errs, "ADMIN_LIST_CACHE_TTL must be between 1s and 10m when admin list cache is enabled")

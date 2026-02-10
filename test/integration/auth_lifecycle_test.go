@@ -284,6 +284,8 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 		AuthAbuseMultiplier:               2.0,
 		AuthAbuseMaxDelay:                 5 * time.Minute,
 		AuthAbuseResetWindow:              30 * time.Minute,
+		BypassInternalProbes:              true,
+		BypassTrustedActors:               false,
 		BootstrapAdminEmail:               "",
 		JWTAccessTTL:                      15 * time.Minute,
 		JWTRefreshTTL:                     24 * time.Hour,
@@ -343,8 +345,14 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 		MaxDelay:     cfg.AuthAbuseMaxDelay,
 		ResetWindow:  cfg.AuthAbuseResetWindow,
 	})
+	bypassEvaluator := middleware.NewRequestBypassEvaluator(middleware.RequestBypassConfig{
+		EnableInternalProbeBypass: cfg.BypassInternalProbes,
+		EnableTrustedActorBypass:  cfg.BypassTrustedActors,
+		TrustedActorCIDRs:         cfg.BypassTrustedActorCIDRs,
+		TrustedActorSubjects:      cfg.BypassTrustedActorSubjects,
+	}, jwtMgr)
 
-	authHandler := handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)
+	authHandler := handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, bypassEvaluator, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)
 	userHandler := handler.NewUserHandler(userSvc, sessionSvc)
 	permissionCache := opts.rbacPermCache
 	if permissionCache == nil {

@@ -251,3 +251,91 @@ func TestRateLimiterWithPolicyBurstThenSustained(t *testing.T) {
 		t.Fatal("expected Retry-After on sustained overflow")
 	}
 }
+
+func TestRequestBypassEvaluatorProbePath(t *testing.T) {
+	evaluator := NewRequestBypassEvaluator(RequestBypassConfig{
+		EnableInternalProbeBypass: true,
+	}, nil)
+	if evaluator == nil {
+		t.Fatal("expected evaluator")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+	req.RemoteAddr = "10.0.0.1:1234"
+	bypass, reason := evaluator(req)
+	if !bypass || reason != "internal_probe_path" {
+		t.Fatalf("expected probe path bypass, got bypass=%v reason=%q", bypass, reason)
+	}
+}
+
+func TestRequestBypassEvaluatorTrustedCIDR(t *testing.T) {
+	evaluator := NewRequestBypassEvaluator(RequestBypassConfig{
+		EnableTrustedActorBypass: true,
+		TrustedActorCIDRs:        []string{"10.20.0.0/16"},
+	}, nil)
+	if evaluator == nil {
+		t.Fatal("expected evaluator")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.RemoteAddr = "10.20.1.5:4444"
+	bypass, reason := evaluator(req)
+	if !bypass || reason != "trusted_actor_cidr" {
+		t.Fatalf("expected cidr bypass, got bypass=%v reason=%q", bypass, reason)
+	}
+}
+
+func TestRequestBypassEvaluatorTrustedSubject(t *testing.T) {
+	jwtMgr := security.NewJWTManager(
+		"iss",
+		"aud",
+		"abcdefghijklmnopqrstuvwxyz123456",
+		"abcdefghijklmnopqrstuvwxyz654321",
+	)
+	token, err := jwtMgr.SignAccessToken(999, nil, nil, 15*time.Minute)
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+
+	evaluator := NewRequestBypassEvaluator(RequestBypassConfig{
+		EnableTrustedActorBypass: true,
+		TrustedActorSubjects:     []string{"999"},
+	}, jwtMgr)
+	if evaluator == nil {
+		t.Fatal("expected evaluator")
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users", nil)
+	req.RemoteAddr = "203.0.113.9:8080"
+	req.Header.Set("Authorization", "Bearer "+token)
+	bypass, reason := evaluator(req)
+	if !bypass || reason != "trusted_actor_subject" {
+		t.Fatalf("expected trusted subject bypass, got bypass=%v reason=%q", bypass, reason)
+	}
+}
+
+func TestRateLimiterBypassSkipsLimiter(t *testing.T) {
+	rl := NewDistributedRateLimiter(
+		mockLimiter{allow: false, retry: 5 * time.Second},
+		1,
+		time.Minute,
+		FailClosed,
+		"api",
+	).WithBypassEvaluator(func(r *http.Request) (bool, string) {
+		return true, "test_bypass"
+	})
+	h := rl.Middleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/x", nil)
+	req.RemoteAddr = "10.0.0.1:1111"
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected bypass to allow request, got %d", rr.Code)
+	}
+	if got := rr.Header().Get("Retry-After"); got != "" {
+		t.Fatalf("did not expect Retry-After on bypass, got %q", got)
+	}
+}

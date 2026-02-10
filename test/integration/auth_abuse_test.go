@@ -118,3 +118,47 @@ func TestPasswordForgotAbuseCooldownUsesIdentityAndIP(t *testing.T) {
 		t.Fatalf("expected forgot request to recover after cooldown, got %d", resp.StatusCode)
 	}
 }
+
+func TestLocalLoginAbuseBypassForTrustedCIDR(t *testing.T) {
+	baseURL, client, closeFn := newAuthTestServerWithOptions(t, authTestServerOptions{
+		cfgOverride: func(cfg *config.Config) {
+			cfg.AuthAbuseFreeAttempts = 0
+			cfg.AuthAbuseBaseDelay = time.Second
+			cfg.AuthAbuseMultiplier = 2
+			cfg.AuthAbuseMaxDelay = 2 * time.Second
+			cfg.AuthAbuseResetWindow = 10 * time.Minute
+			cfg.BypassTrustedActors = true
+			cfg.BypassTrustedActorCIDRs = []string{"10.50.0.0/16"}
+		},
+	})
+	defer closeFn()
+
+	registerAndLogin(t, client, baseURL, "trusted-bypass@example.com", "Valid#Pass1234")
+
+	resp, _ := doJSON(t, client, http.MethodPost, baseURL+"/api/v1/auth/logout", nil, map[string]string{
+		"X-CSRF-Token": cookieValue(t, client, baseURL, "csrf_token"),
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("logout setup failed: %d", resp.StatusCode)
+	}
+
+	resp, _ = doJSON(t, client, http.MethodPost, baseURL+"/api/v1/auth/local/login", map[string]string{
+		"email":    "trusted-bypass@example.com",
+		"password": "wrong-password",
+	}, map[string]string{
+		"X-Forwarded-For": "10.50.1.1",
+	})
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected failed login 401 for trusted actor, got %d", resp.StatusCode)
+	}
+
+	resp, _ = doJSON(t, client, http.MethodPost, baseURL+"/api/v1/auth/local/login", map[string]string{
+		"email":    "trusted-bypass@example.com",
+		"password": "Valid#Pass1234",
+	}, map[string]string{
+		"X-Forwarded-For": "10.50.1.1",
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected trusted actor login to bypass cooldown and succeed, got %d", resp.StatusCode)
+	}
+}

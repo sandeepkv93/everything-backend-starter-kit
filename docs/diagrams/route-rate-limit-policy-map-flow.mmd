@@ -1,5 +1,8 @@
 flowchart TD
     Req[Incoming Request] --> Match[Route Matcher]
+    Req --> Bypass{Probe/Trusted bypass?}
+    Bypass -->|yes| PassBypass[Skip limiter and continue]
+    Bypass -->|no| Match
 
     Match --> Login{POST /auth/local/login}
     Match --> Refresh{POST /auth/refresh}

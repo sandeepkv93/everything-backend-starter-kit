@@ -4,6 +4,7 @@ go_library(
     name = "middleware",
     srcs = [
         "auth_middleware.go",
+        "bypass_policy.go",
         "idempotency_middleware.go",
         "rate_limit_middleware.go",
         "rate_limit_redis.go",

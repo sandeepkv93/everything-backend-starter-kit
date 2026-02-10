@@ -338,6 +338,10 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `AUTH_ABUSE_MULTIPLIER` (default `2.0`)
 - `AUTH_ABUSE_MAX_DELAY` (default `5m`)
 - `AUTH_ABUSE_RESET_WINDOW` (default `30m`)
+- `AUTH_BYPASS_INTERNAL_PROBES` (default `true`; bypasses limiter/abuse checks for `/health/live` and `/health/ready`)
+- `AUTH_BYPASS_TRUSTED_ACTORS` (default `false`; requires trusted CIDRs and/or subjects)
+- `AUTH_BYPASS_TRUSTED_ACTOR_CIDRS` (CSV CIDRs, default empty)
+- `AUTH_BYPASS_TRUSTED_ACTOR_SUBJECTS` (CSV JWT subject IDs, default empty)
 - `IDEMPOTENCY_ENABLED` (default `true`)
 - `IDEMPOTENCY_REDIS_ENABLED` (default `true`, falls back to DB store when disabled)
 - `IDEMPOTENCY_TTL` (default `24h`)
@@ -461,6 +465,8 @@ OpenAPI spec:
 - Local auth abuse controls apply exponential cooldown per normalized identity (email) and per client IP for:
   - local login failures (`POST /api/v1/auth/local/login`)
   - password forgot requests (`POST /api/v1/auth/local/password/forgot`)
+- Internal health probes (`/health/live`, `/health/ready`) can bypass limiter and abuse checks when `AUTH_BYPASS_INTERNAL_PROBES=true`.
+- Trusted system actors can bypass limiter/abuse checks via explicit allowlist on CIDR and/or JWT subject (`AUTH_BYPASS_TRUSTED_ACTORS=true` with trusted values configured).
 - API limiter keys authenticated requests by access-token subject (`sub:<user_id>`) and falls back to client IP when no valid access token is present.
 - Forgot-password rate limiting is Redis-distributed when `RATE_LIMIT_REDIS_ENABLED=true`, with fail-closed fallback semantics for backend errors.
 - Scoped mutating endpoints enforce idempotency keys with replay/conflict semantics (`Idempotency-Key`).

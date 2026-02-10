@@ -16,17 +16,19 @@ import (
 )
 
 type AuthHandler struct {
-	authSvc    service.AuthServiceInterface
-	abuseGuard service.AuthAbuseGuard
-	cookieMgr  *security.CookieManager
-	stateKey   string
-	refreshTTL time.Duration
+	authSvc     service.AuthServiceInterface
+	abuseGuard  service.AuthAbuseGuard
+	cookieMgr   *security.CookieManager
+	abuseBypass middleware.BypassEvaluator
+	stateKey    string
+	refreshTTL  time.Duration
 }
 
 func NewAuthHandler(
 	authSvc service.AuthServiceInterface,
 	abuseGuard service.AuthAbuseGuard,
 	cookieMgr *security.CookieManager,
+	abuseBypass middleware.BypassEvaluator,
 	stateKey string,
 	refreshTTL time.Duration,
 ) *AuthHandler {
@@ -34,11 +36,12 @@ func NewAuthHandler(
 		abuseGuard = service.NewNoopAuthAbuseGuard()
 	}
 	return &AuthHandler{
-		authSvc:    authSvc,
-		abuseGuard: abuseGuard,
-		cookieMgr:  cookieMgr,
-		stateKey:   stateKey,
-		refreshTTL: refreshTTL,
+		authSvc:     authSvc,
+		abuseGuard:  abuseGuard,
+		cookieMgr:   cookieMgr,
+		abuseBypass: abuseBypass,
+		stateKey:    stateKey,
+		refreshTTL:  refreshTTL,
 	}
 }
 
@@ -252,27 +255,34 @@ func (h *AuthHandler) LocalLogin(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
-	retryAfter, err := h.abuseGuard.Check(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r))
-	if err != nil {
-		status = "failure"
-		auditAuth(r, "auth.local.login", "login", "failure", "abuse_check_error", "anonymous", "user", "unknown", "error", err.Error())
-		writeAbuseCooldownHeaders(w, retryAfter)
-		response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
-		return
-	}
-	if retryAfter > 0 {
-		status = "failure"
-		auditAuth(r, "auth.local.login", "login", "rejected", "abuse_cooldown", "anonymous", "user", "unknown")
-		writeAbuseCooldownHeaders(w, retryAfter)
-		response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
-		return
+	bypassAuthAbuse, bypassReason := h.shouldBypassAuthAbuse(r)
+	if bypassAuthAbuse {
+		auditAuth(r, "auth.local.login", "login", "accepted", "abuse_bypass_"+bypassReason, "anonymous", "user", "unknown")
+	} else {
+		retryAfter, err := h.abuseGuard.Check(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r))
+		if err != nil {
+			status = "failure"
+			auditAuth(r, "auth.local.login", "login", "failure", "abuse_check_error", "anonymous", "user", "unknown", "error", err.Error())
+			writeAbuseCooldownHeaders(w, retryAfter)
+			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
+			return
+		}
+		if retryAfter > 0 {
+			status = "failure"
+			auditAuth(r, "auth.local.login", "login", "rejected", "abuse_cooldown", "anonymous", "user", "unknown")
+			writeAbuseCooldownHeaders(w, retryAfter)
+			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
+			return
+		}
 	}
 	result, err := h.authSvc.LoginWithLocalPassword(req.Email, req.Password, r.UserAgent(), clientIP(r))
 	if err != nil {
 		status = "failure"
-		_, abuseErr := h.abuseGuard.RegisterFailure(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r))
-		if abuseErr != nil {
-			auditAuth(r, "auth.local.login", "login", "failure", "abuse_record_error", "anonymous", "user", "unknown", "error", abuseErr.Error())
+		if !bypassAuthAbuse {
+			_, abuseErr := h.abuseGuard.RegisterFailure(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r))
+			if abuseErr != nil {
+				auditAuth(r, "auth.local.login", "login", "failure", "abuse_record_error", "anonymous", "user", "unknown", "error", abuseErr.Error())
+			}
 		}
 		auditAuth(r, "auth.local.login", "login", "failure", "login_error", "anonymous", "user", "unknown", "error", err.Error())
 		observability.RecordAuthLogin(r.Context(), "local", "failure")
@@ -288,8 +298,10 @@ func (h *AuthHandler) LocalLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := h.abuseGuard.Reset(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r)); err != nil {
-		auditAuth(r, "auth.local.login", "login", "failure", "abuse_reset_error", observability.ActorUserID(result.User.ID), "user", observability.ActorUserID(result.User.ID), "error", err.Error())
+	if !bypassAuthAbuse {
+		if err := h.abuseGuard.Reset(r.Context(), service.AuthAbuseScopeLogin, req.Email, clientIP(r)); err != nil {
+			auditAuth(r, "auth.local.login", "login", "failure", "abuse_reset_error", observability.ActorUserID(result.User.ID), "user", observability.ActorUserID(result.User.ID), "error", err.Error())
+		}
 	}
 	h.cookieMgr.SetTokenCookies(w, result.AccessToken, result.RefreshToken, result.CSRFToken, h.refreshTTL)
 	auditAuth(r, "auth.local.login", "login", "success", "credentials_valid", observability.ActorUserID(result.User.ID), "user", observability.ActorUserID(result.User.ID))
@@ -374,20 +386,25 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
-	retryAfter, err := h.abuseGuard.Check(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r))
-	if err != nil {
-		status = "failure"
-		auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_check_error", "anonymous", "user", "unknown", "error", err.Error())
-		writeAbuseCooldownHeaders(w, retryAfter)
-		response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
-		return
-	}
-	if retryAfter > 0 {
-		status = "failure"
-		auditAuth(r, "auth.local.password.forgot", "password_forgot", "rejected", "abuse_cooldown", "anonymous", "user", "unknown")
-		writeAbuseCooldownHeaders(w, retryAfter)
-		response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
-		return
+	bypassAuthAbuse, bypassReason := h.shouldBypassAuthAbuse(r)
+	if bypassAuthAbuse {
+		auditAuth(r, "auth.local.password.forgot", "password_forgot", "accepted", "abuse_bypass_"+bypassReason, "anonymous", "user", "unknown")
+	} else {
+		retryAfter, err := h.abuseGuard.Check(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r))
+		if err != nil {
+			status = "failure"
+			auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_check_error", "anonymous", "user", "unknown", "error", err.Error())
+			writeAbuseCooldownHeaders(w, retryAfter)
+			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
+			return
+		}
+		if retryAfter > 0 {
+			status = "failure"
+			auditAuth(r, "auth.local.password.forgot", "password_forgot", "rejected", "abuse_cooldown", "anonymous", "user", "unknown")
+			writeAbuseCooldownHeaders(w, retryAfter)
+			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
+			return
+		}
 	}
 	if err := h.authSvc.ForgotLocalPassword(req.Email); err != nil {
 		status = "failure"
@@ -400,15 +417,24 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	if _, err := h.abuseGuard.RegisterFailure(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r)); err != nil {
-		status = "failure"
-		auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_record_error", "anonymous", "user", "unknown", "error", err.Error())
-		writeAbuseCooldownHeaders(w, retryAfter)
-		response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
-		return
+	if !bypassAuthAbuse {
+		if retryAfter, err := h.abuseGuard.RegisterFailure(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r)); err != nil {
+			status = "failure"
+			auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_record_error", "anonymous", "user", "unknown", "error", err.Error())
+			writeAbuseCooldownHeaders(w, retryAfter)
+			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
+			return
+		}
 	}
 	auditAuth(r, "auth.local.password.forgot", "password_forgot", "accepted", "reset_requested", "anonymous", "user", "unknown")
 	response.JSON(w, r, http.StatusOK, map[string]string{"status": "if the account exists, reset instructions were sent"})
+}
+
+func (h *AuthHandler) shouldBypassAuthAbuse(r *http.Request) (bool, string) {
+	if h.abuseBypass == nil {
+		return false, ""
+	}
+	return h.abuseBypass(r)
 }
 
 func (h *AuthHandler) LocalPasswordReset(w http.ResponseWriter, r *http.Request) {

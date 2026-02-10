@@ -133,6 +133,11 @@ sequenceDiagram
     participant H as Forgot Handler
 
     C->>R: POST /api/v1/auth/local/password/forgot
+    R->>R: Check probe/trusted bypass
+    alt bypass matched
+        R->>H: Skip limiter + abuse guard
+        H-->>C: 200 generic response
+    else enforce protection
     R->>RL: Apply forgot limiter middleware
     RL->>AB: Check identity+ip cooldown
     alt active cooldown
@@ -150,6 +155,7 @@ sequenceDiagram
         RL->>H: pass request (+ X-RateLimit-*)
         H->>AB: Register forgot attempt (exp backoff)
         H-->>C: 200 generic response (+ X-RateLimit-*)
+    end
     end
     end
 ```
@@ -192,6 +198,9 @@ Source: `docs/diagrams/api-rate-limiter-key-flow.mmd`
 ```mermaid
 flowchart TD
     Req[Incoming Request] --> Match[Route Matcher]
+    Req --> Bypass{Probe/Trusted bypass?}
+    Bypass -->|yes| PassBypass[Skip limiter and continue]
+    Bypass -->|no| Match
 
     Match --> Login{POST /auth/local/login}
     Match --> Refresh{POST /auth/refresh}

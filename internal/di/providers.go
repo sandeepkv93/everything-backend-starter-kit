@@ -72,6 +72,7 @@ var ServiceSet = wire.NewSet(
 )
 
 var HTTPSet = wire.NewSet(
+	provideRequestBypassEvaluator,
 	provideAuthHandler,
 	provideAuthAbuseGuard,
 	handler.NewUserHandler,
@@ -247,12 +248,27 @@ func provideAuthHandler(
 	authSvc service.AuthServiceInterface,
 	abuseGuard service.AuthAbuseGuard,
 	cookieMgr *security.CookieManager,
+	bypassEvaluator middleware.BypassEvaluator,
 	cfg *config.Config,
 ) *handler.AuthHandler {
-	return handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, cfg.StateSigningSecret, cfg.JWTRefreshTTL)
+	return handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, bypassEvaluator, cfg.StateSigningSecret, cfg.JWTRefreshTTL)
 }
 
-func provideGlobalRateLimiter(cfg *config.Config, redisClient redis.UniversalClient, jwt *security.JWTManager) router.GlobalRateLimiterFunc {
+func provideRequestBypassEvaluator(cfg *config.Config, jwt *security.JWTManager) middleware.BypassEvaluator {
+	return middleware.NewRequestBypassEvaluator(middleware.RequestBypassConfig{
+		EnableInternalProbeBypass: cfg.BypassInternalProbes,
+		EnableTrustedActorBypass:  cfg.BypassTrustedActors,
+		TrustedActorCIDRs:         cfg.BypassTrustedActorCIDRs,
+		TrustedActorSubjects:      cfg.BypassTrustedActorSubjects,
+	}, jwt)
+}
+
+func provideGlobalRateLimiter(
+	cfg *config.Config,
+	redisClient redis.UniversalClient,
+	jwt *security.JWTManager,
+	bypassEvaluator middleware.BypassEvaluator,
+) router.GlobalRateLimiterFunc {
 	keyFunc := middleware.SubjectOrIPKeyFunc(jwt)
 	policy := toRateLimitPolicy(cfg.APIRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
@@ -263,12 +279,16 @@ func provideGlobalRateLimiter(cfg *config.Config, redisClient redis.UniversalCli
 			middleware.FailOpen,
 			"api",
 			keyFunc,
-		).Middleware()
+		).WithBypassEvaluator(bypassEvaluator).Middleware()
 	}
-	return middleware.NewRateLimiterWithPolicy(policy, keyFunc).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, keyFunc).WithBypassEvaluator(bypassEvaluator).Middleware()
 }
 
-func provideAuthRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.AuthRateLimiterFunc {
+func provideAuthRateLimiter(
+	cfg *config.Config,
+	redisClient redis.UniversalClient,
+	bypassEvaluator middleware.BypassEvaluator,
+) router.AuthRateLimiterFunc {
 	policy := toRateLimitPolicy(cfg.AuthRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth")
@@ -278,12 +298,16 @@ func provideAuthRateLimiter(cfg *config.Config, redisClient redis.UniversalClien
 			middleware.FailClosed,
 			"auth",
 			nil,
-		).Middleware()
+		).WithBypassEvaluator(bypassEvaluator).Middleware()
 	}
-	return middleware.NewRateLimiterWithPolicy(policy, nil).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, nil).WithBypassEvaluator(bypassEvaluator).Middleware()
 }
 
-func provideForgotRateLimiter(cfg *config.Config, redisClient redis.UniversalClient) router.ForgotRateLimiterFunc {
+func provideForgotRateLimiter(
+	cfg *config.Config,
+	redisClient redis.UniversalClient,
+	bypassEvaluator middleware.BypassEvaluator,
+) router.ForgotRateLimiterFunc {
 	policy := toRateLimitPolicy(cfg.AuthPasswordForgotRateLimitPerMin, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
 		redisLimiter := middleware.NewRedisFixedWindowLimiter(redisClient, cfg.RateLimitRedisPrefix+":auth:forgot")
@@ -293,12 +317,17 @@ func provideForgotRateLimiter(cfg *config.Config, redisClient redis.UniversalCli
 			middleware.FailClosed,
 			"auth_password_forgot",
 			nil,
-		).Middleware()
+		).WithBypassEvaluator(bypassEvaluator).Middleware()
 	}
-	return middleware.NewRateLimiterWithPolicy(policy, nil).Middleware()
+	return middleware.NewRateLimiterWithPolicy(policy, nil).WithBypassEvaluator(bypassEvaluator).Middleware()
 }
 
-func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.UniversalClient, jwt *security.JWTManager) router.RouteRateLimitPolicies {
+func provideRouteRateLimitPolicies(
+	cfg *config.Config,
+	redisClient redis.UniversalClient,
+	jwt *security.JWTManager,
+	bypassEvaluator middleware.BypassEvaluator,
+) router.RouteRateLimitPolicies {
 	policies := make(router.RouteRateLimitPolicies, 4)
 	policies[router.RoutePolicyLogin] = buildRoutePolicyLimiter(
 		cfg,
@@ -308,6 +337,7 @@ func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.Univers
 		middleware.FailClosed,
 		"route_login",
 		nil,
+		bypassEvaluator,
 	)
 	policies[router.RoutePolicyRefresh] = buildRoutePolicyLimiter(
 		cfg,
@@ -317,6 +347,7 @@ func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.Univers
 		middleware.FailClosed,
 		"route_refresh",
 		middleware.SubjectOrIPKeyFunc(jwt),
+		bypassEvaluator,
 	)
 	subjectKey := middleware.SubjectOrIPKeyFunc(jwt)
 	policies[router.RoutePolicyAdminWrite] = buildRoutePolicyLimiter(
@@ -327,6 +358,7 @@ func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.Univers
 		middleware.FailClosed,
 		"route_admin_write",
 		subjectKey,
+		bypassEvaluator,
 	)
 	policies[router.RoutePolicyAdminSync] = buildRoutePolicyLimiter(
 		cfg,
@@ -336,6 +368,7 @@ func provideRouteRateLimitPolicies(cfg *config.Config, redisClient redis.Univers
 		middleware.FailClosed,
 		"route_admin_sync",
 		subjectKey,
+		bypassEvaluator,
 	)
 	return policies
 }
@@ -348,6 +381,7 @@ func buildRoutePolicyLimiter(
 	mode middleware.FailureMode,
 	scope string,
 	keyFunc func(*http.Request) string,
+	bypassEvaluator middleware.BypassEvaluator,
 ) func(http.Handler) http.Handler {
 	policy := toRateLimitPolicy(limit, cfg)
 	if cfg.RateLimitRedisEnabled && redisClient != nil {
@@ -358,7 +392,7 @@ func buildRoutePolicyLimiter(
 			mode,
 			scope,
 			keyFunc,
-		).Middleware()
+		).WithBypassEvaluator(bypassEvaluator).Middleware()
 	}
 	return middleware.NewDistributedRateLimiterWithKeyAndPolicy(
 		middleware.NewLocalFixedWindowLimiter(),
@@ -366,7 +400,7 @@ func buildRoutePolicyLimiter(
 		mode,
 		scope,
 		keyFunc,
-	).Middleware()
+	).WithBypassEvaluator(bypassEvaluator).Middleware()
 }
 
 func toRateLimitPolicy(perMinute int, cfg *config.Config) middleware.RateLimitPolicy {
