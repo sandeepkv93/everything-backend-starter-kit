@@ -46,6 +46,7 @@ go_test(
     srcs = [
         "admin_list_cache_test.go",
         "auth_abuse_guard_test.go",
+        "auth_service_test.go",
         "auth_password_policy_test.go",
         "idempotency_store_db_test.go",
         "negative_lookup_cache_test.go",

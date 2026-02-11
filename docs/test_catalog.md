@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 43
-- Unit test files: 25
+- Total test files: 44
+- Unit test files: 26
 - Integration test files: 18
-- Total test functions: 151
-- Unit test functions: 103
+- Total test functions: 158
+- Unit test functions: 110
 - Integration test functions: 48
 
 ## Unit Tests
@@ -49,6 +49,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestInMemoryAuthAbuseGuardResetClearsCooldown`, `TestInMemoryAuthAbuseGuardDimensionIsolation`, `TestInMemoryAuthAbuseGuardExponentialCooldown`
 - `internal/service/auth_password_policy_test.go`
   - `TestValidatePasswordPolicy`
+- `internal/service/auth_service_test.go`
+  - `TestAuthServiceRegisterLocalMatrix`, `TestAuthServiceLoginWithLocalPasswordMatrix`, `TestAuthServiceRequestAndConfirmEmailVerificationMatrix`, `TestAuthServiceForgotAndResetPasswordMatrix`, `TestAuthServiceChangeLocalPasswordMatrix`, `TestAuthServiceGoogleAndParseUserID`, `TestAuthServiceAssignBootstrapAdminIfNeededEdgeCases`
 - `internal/service/idempotency_store_db_test.go`
   - `TestDBIdempotencyStoreCleanupExpiredDeletesOnlyExpiredRows`, `TestDBIdempotencyStoreCleanupExpiredHonorsBatchSize`
 - `internal/service/negative_lookup_cache_test.go`

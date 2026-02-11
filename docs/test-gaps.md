@@ -11,10 +11,10 @@ This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `
 
 Current baseline from catalog:
 
-- Test files: 42
-- Unit test files: 25
-- Integration test files: 17
-- Declared test functions: 148
+- Test files: 44
+- Unit test files: 26
+- Integration test files: 18
+- Declared test functions: 158
 
 ## High-Level Coverage Posture
 
@@ -38,30 +38,7 @@ Most meaningful gaps are concentrated in:
 
 ## P0 Gaps (Highest Risk)
 
-### 1) `AuthService` has large untested business logic (unit)
-
-Current state:
-
-- Password policy and token rotation are covered indirectly/adjacently.
-- `auth_service.go` has no dedicated test file.
-
-Missing scenarios:
-
-- `RegisterLocal`: invalid email/name/password, duplicate email, role assignment fallback, verification-required branch, verification-disabled immediate login branch, bootstrap-admin assignment branch.
-- `LoginWithLocalPassword`: local auth disabled, wrong password, unverified email, success issuing tokens.
-- `RequestLocalEmailVerification`: unknown email no-op, already verified no-op, token creation/invalidation, malformed base URL failure, notifier failure.
-- `ConfirmLocalEmailVerification`: empty token, not-found token, consume race/not-found, mark-verified failure.
-- `ForgotLocalPassword`: unknown email no-op, token issuance, malformed base URL failure, notifier failure.
-- `ResetLocalPassword`: invalid token/new password, consume/update/revoke failure branches.
-- `ChangeLocalPassword`: invalid current credentials, same password rejection, revoke-all path.
-- `LoginWithGoogleCode` and `GoogleLoginURL` feature-gate checks and token issue path.
-- `ParseUserID` and bootstrap admin helper edge cases.
-
-Why P0:
-
-- This service carries critical auth correctness and account recovery behavior.
-
-### 2) Idempotency middleware branch coverage is incomplete (unit)
+### 1) Idempotency middleware branch coverage is incomplete (unit)
 
 Current state:
 
@@ -208,8 +185,7 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P0-1: Add `internal/service/auth_service_test.go` with table-driven branch coverage.
-2. P0-2: Add `internal/http/middleware/idempotency_middleware_test.go` for complete branch matrix.
+1. P0-1: Add `internal/http/middleware/idempotency_middleware_test.go` for complete idempotency branch matrix.
 3. P1-5/6: Add user/admin/auth handler unit tests and health/router integration tests.
 4. P1-7/8: Fill repository and Redis-store unit tests.
 5. P1-9/10 and P2: Observability/security/tooling hardening coverage.
@@ -217,7 +193,6 @@ Note:
 ## Concrete New Test Files to Add
 
 - `test/integration/health_endpoints_test.go`
-- `internal/service/auth_service_test.go`
 - `internal/http/middleware/idempotency_middleware_test.go`
 - `internal/http/handler/auth_handler_test.go`
 - `internal/http/handler/user_handler_test.go`
