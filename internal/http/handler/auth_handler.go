@@ -313,23 +313,28 @@ func (h *AuthHandler) LocalLogin(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) LocalVerifyRequest(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
+	flowOutcome := "accepted"
 	defer func() {
 		observability.RecordAuthRequestDuration(r.Context(), "local_verify_request", status, time.Since(start))
+		observability.RecordAuthLocalFlowEvent(r.Context(), "verify_request", flowOutcome)
 	}()
 	var req struct {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.verify.request", "verify_request", "failure", "invalid_payload", "anonymous", "user", "unknown")
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
 	if err := h.authSvc.RequestLocalEmailVerification(req.Email); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.verify.request", "verify_request", "failure", "service_error", "anonymous", "user", "unknown", "error", err.Error())
 		switch {
 		case errors.Is(err, service.ErrLocalAuthDisabled):
+			flowOutcome = "not_enabled"
 			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
 		default:
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", err.Error(), nil)
@@ -343,25 +348,31 @@ func (h *AuthHandler) LocalVerifyRequest(w http.ResponseWriter, r *http.Request)
 func (h *AuthHandler) LocalVerifyConfirm(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
+	flowOutcome := "success"
 	defer func() {
 		observability.RecordAuthRequestDuration(r.Context(), "local_verify_confirm", status, time.Since(start))
+		observability.RecordAuthLocalFlowEvent(r.Context(), "verify_confirm", flowOutcome)
 	}()
 	var req struct {
 		Token string `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.verify.confirm", "verify_confirm", "failure", "invalid_payload", "anonymous", "verification_token", "unknown")
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
 	if err := h.authSvc.ConfirmLocalEmailVerification(req.Token); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.verify.confirm", "verify_confirm", "failure", "service_error", "anonymous", "verification_token", "unknown", "error", err.Error())
 		switch {
 		case errors.Is(err, service.ErrLocalAuthDisabled):
+			flowOutcome = "not_enabled"
 			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
 		case errors.Is(err, service.ErrInvalidVerifyToken):
+			flowOutcome = "invalid_token"
 			response.Error(w, r, http.StatusBadRequest, "INVALID_OR_EXPIRED_TOKEN", "invalid or expired token", nil)
 		default:
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", err.Error(), nil)
@@ -375,14 +386,17 @@ func (h *AuthHandler) LocalVerifyConfirm(w http.ResponseWriter, r *http.Request)
 func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
+	flowOutcome := "accepted"
 	defer func() {
 		observability.RecordAuthRequestDuration(r.Context(), "local_password_forgot", status, time.Since(start))
+		observability.RecordAuthLocalFlowEvent(r.Context(), "password_forgot", flowOutcome)
 	}()
 	var req struct {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "invalid_payload", "anonymous", "user", "unknown")
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
@@ -395,6 +409,7 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 		retryAfter, err := h.abuseGuard.Check(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r))
 		if err != nil {
 			status = "failure"
+			flowOutcome = "rate_limited"
 			auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_check_error", "anonymous", "user", "unknown", "error", err.Error())
 			writeAbuseCooldownHeaders(w, retryAfter)
 			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
@@ -402,6 +417,7 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 		}
 		if retryAfter > 0 {
 			status = "failure"
+			flowOutcome = "rate_limited"
 			auditAuth(r, "auth.local.password.forgot", "password_forgot", "rejected", "abuse_cooldown", "anonymous", "user", "unknown")
 			writeAbuseCooldownHeaders(w, retryAfter)
 			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
@@ -410,9 +426,11 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 	}
 	if err := h.authSvc.ForgotLocalPassword(req.Email); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "service_error", "anonymous", "user", "unknown", "error", err.Error())
 		switch {
 		case errors.Is(err, service.ErrLocalAuthDisabled):
+			flowOutcome = "not_enabled"
 			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
 		default:
 			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "password reset request failed", nil)
@@ -422,6 +440,7 @@ func (h *AuthHandler) LocalPasswordForgot(w http.ResponseWriter, r *http.Request
 	if !bypassAuthAbuse {
 		if retryAfter, err := h.abuseGuard.RegisterFailure(r.Context(), service.AuthAbuseScopeForgot, req.Email, clientIP(r)); err != nil {
 			status = "failure"
+			flowOutcome = "rate_limited"
 			auditAuth(r, "auth.local.password.forgot", "password_forgot", "failure", "abuse_record_error", "anonymous", "user", "unknown", "error", err.Error())
 			writeAbuseCooldownHeaders(w, retryAfter)
 			response.Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests", nil)
@@ -442,8 +461,10 @@ func (h *AuthHandler) shouldBypassAuthAbuse(r *http.Request) (bool, string) {
 func (h *AuthHandler) LocalPasswordReset(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
+	flowOutcome := "success"
 	defer func() {
 		observability.RecordAuthRequestDuration(r.Context(), "local_password_reset", status, time.Since(start))
+		observability.RecordAuthLocalFlowEvent(r.Context(), "password_reset", flowOutcome)
 	}()
 	var req struct {
 		Token       string `json:"token"`
@@ -451,19 +472,24 @@ func (h *AuthHandler) LocalPasswordReset(w http.ResponseWriter, r *http.Request)
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.password.reset", "password_reset", "failure", "invalid_payload", "anonymous", "password_reset_token", "unknown")
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
 	if err := h.authSvc.ResetLocalPassword(req.Token, req.NewPassword); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.password.reset", "password_reset", "failure", "service_error", "anonymous", "password_reset_token", "unknown", "error", err.Error())
 		switch {
 		case errors.Is(err, service.ErrLocalAuthDisabled):
+			flowOutcome = "not_enabled"
 			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
 		case errors.Is(err, service.ErrWeakPassword):
+			flowOutcome = "weak_password"
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "password must be 12+ chars and include upper, lower, number, and special char", nil)
 		case errors.Is(err, service.ErrInvalidVerifyToken):
+			flowOutcome = "invalid_token"
 			response.Error(w, r, http.StatusBadRequest, "INVALID_OR_EXPIRED_TOKEN", "invalid or expired token", nil)
 		default:
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "password reset failed", nil)
@@ -477,18 +503,22 @@ func (h *AuthHandler) LocalPasswordReset(w http.ResponseWriter, r *http.Request)
 func (h *AuthHandler) LocalChangePassword(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status := "success"
+	flowOutcome := "success"
 	defer func() {
 		observability.RecordAuthRequestDuration(r.Context(), "local_change_password", status, time.Since(start))
+		observability.RecordAuthLocalFlowEvent(r.Context(), "password_change", flowOutcome)
 	}()
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		status = "failure"
+		flowOutcome = "unauthorized"
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing auth context", nil)
 		return
 	}
 	userID, err := h.authSvc.ParseUserID(claims.Subject)
 	if err != nil {
 		status = "failure"
+		flowOutcome = "unauthorized"
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid subject", nil)
 		return
 	}
@@ -498,19 +528,24 @@ func (h *AuthHandler) LocalChangePassword(w http.ResponseWriter, r *http.Request
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.change_password", "password_change", "failure", "invalid_payload", observability.ActorUserID(userID), "user", observability.ActorUserID(userID))
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid payload", nil)
 		return
 	}
 	if err := h.authSvc.ChangeLocalPassword(userID, req.CurrentPassword, req.NewPassword); err != nil {
 		status = "failure"
+		flowOutcome = "failure"
 		auditAuth(r, "auth.local.change_password", "password_change", "failure", "change_error", observability.ActorUserID(userID), "user", observability.ActorUserID(userID), "error", err.Error())
 		switch {
 		case errors.Is(err, service.ErrLocalAuthDisabled):
+			flowOutcome = "not_enabled"
 			response.Error(w, r, http.StatusNotFound, "NOT_ENABLED", "local auth is disabled", nil)
 		case errors.Is(err, service.ErrWeakPassword):
+			flowOutcome = "weak_password"
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "password must be 12+ chars and include upper, lower, number, and special char", nil)
 		case errors.Is(err, service.ErrInvalidCredentials):
+			flowOutcome = "unauthorized"
 			response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid credentials", nil)
 		default:
 			response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", err.Error(), nil)

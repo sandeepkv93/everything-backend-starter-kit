@@ -34,6 +34,10 @@ type AppMetrics struct {
 	abuseGuardCounter            metric.Int64Counter
 	abuseGuardCooldown           metric.Float64Histogram
 	refreshSecurityCounter       metric.Int64Counter
+	sessionManagementCounter     metric.Int64Counter
+	sessionRevokedCount          metric.Float64Histogram
+	userProfileCounter           metric.Int64Counter
+	authLocalFlowCounter         metric.Int64Counter
 }
 
 var (
@@ -153,6 +157,25 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 	if err != nil {
 		return nil, err
 	}
+	sessionManagementCounter, err := meter.Int64Counter("session.management.events")
+	if err != nil {
+		return nil, err
+	}
+	sessionRevokedCount, err := meter.Float64Histogram(
+		"session.revoked.count",
+		metric.WithDescription("Number of sessions revoked per management action"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	userProfileCounter, err := meter.Int64Counter("user.profile.events")
+	if err != nil {
+		return nil, err
+	}
+	authLocalFlowCounter, err := meter.Int64Counter("auth.local.flow.events")
+	if err != nil {
+		return nil, err
+	}
 
 	metricsMu.Lock()
 	appMetrics = &AppMetrics{
@@ -171,6 +194,10 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 		abuseGuardCounter:            abuseGuardCounter,
 		abuseGuardCooldown:           abuseGuardCooldown,
 		refreshSecurityCounter:       refreshSecurityCounter,
+		sessionManagementCounter:     sessionManagementCounter,
+		sessionRevokedCount:          sessionRevokedCount,
+		userProfileCounter:           userProfileCounter,
+		authLocalFlowCounter:         authLocalFlowCounter,
 	}
 	metricsMu.Unlock()
 
@@ -375,6 +402,56 @@ func RecordRefreshSecurityEvent(ctx context.Context, outcome string) {
 		return
 	}
 	m.refreshSecurityCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("outcome", outcome),
+	))
+}
+
+func RecordSessionManagementEvent(ctx context.Context, action, status string) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.sessionManagementCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("action", action),
+		attribute.String("status", status),
+	))
+}
+
+func RecordSessionRevokedCount(ctx context.Context, action string, count int64) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.sessionRevokedCount.Record(ctx, float64(count), metric.WithAttributes(
+		attribute.String("action", action),
+	))
+}
+
+func RecordUserProfileEvent(ctx context.Context, outcome string) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.userProfileCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("outcome", outcome),
+	))
+}
+
+func RecordAuthLocalFlowEvent(ctx context.Context, flow, outcome string) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.authLocalFlowCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("flow", flow),
 		attribute.String("outcome", outcome),
 	))
 }

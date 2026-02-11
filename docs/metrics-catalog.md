@@ -35,6 +35,10 @@ Non-scope:
 | `auth.abuse_guard.events` | Counter (int64) | 1 | `scope`, `action`, `outcome` | `RecordAuthAbuseGuardEvent` calls in `internal/service/auth_abuse_guard*.go` and `internal/http/handler/auth_handler.go` |
 | `auth.abuse_guard.cooldown` | Histogram (float64) | `s` | `scope`, `action` | `RecordAuthAbuseCooldown` calls in `internal/service/auth_abuse_guard*.go` |
 | `auth.refresh.security.events` | Counter (int64) | 1 | `outcome` | `RecordRefreshSecurityEvent` calls in `internal/service/token_service.go` |
+| `session.management.events` | Counter (int64) | 1 | `action`, `status` | `RecordSessionManagementEvent` calls in `internal/http/handler/user_handler.go` |
+| `session.revoked.count` | Histogram (float64) | 1 | `action` | `RecordSessionRevokedCount` calls in `internal/http/handler/user_handler.go` |
+| `user.profile.events` | Counter (int64) | 1 | `outcome` | `RecordUserProfileEvent` calls in `internal/http/handler/user_handler.go` |
+| `auth.local.flow.events` | Counter (int64) | 1 | `flow`, `outcome` | `RecordAuthLocalFlowEvent` calls in `internal/http/handler/auth_handler.go` |
 | `admin.rbac.mutations` | Counter (int64) | 1 | `entity`, `action`, `status` | `RecordAdminRBACMutation` calls in `internal/http/handler/admin_handler.go` |
 | `admin.list.cache.events` | Counter (int64) | 1 | `endpoint`, `outcome` | `RecordAdminListCacheEvent` calls in `internal/http/handler/admin_handler.go` |
 | `auth.rbac.permission.cache.events` | Counter (int64) | 1 | `outcome` | `RecordRBACPermissionCacheEvent` calls in `internal/http/middleware/rbac_middleware.go`, `internal/service/rbac_permission_resolver.go`, `internal/http/handler/admin_handler.go` |
@@ -80,6 +84,20 @@ Non-scope:
 
 `auth.refresh.security.events`
 - `outcome`: `invalid`, `reuse_detected`, `lineage_backfilled`, `rotated`
+
+`session.management.events`
+- `action`: `list`, `revoke_one`, `revoke_others`
+- `status`: `success`, `not_found`, `error`
+
+`session.revoked.count`
+- `action` currently emitted: `revoke_others`
+
+`user.profile.events`
+- `outcome`: `success`, `not_found`, `unauthorized`
+
+`auth.local.flow.events`
+- `flow`: `verify_request`, `verify_confirm`, `password_forgot`, `password_reset`, `password_change`
+- `outcome` values used: `accepted`, `success`, `failure`, `not_enabled`, `invalid_token`, `weak_password`, `rate_limited`, `unauthorized`
 
 `admin.rbac.mutations`
 - `entity`: `user_role`, `role`, `permission`, `sync`
@@ -144,6 +162,7 @@ The exact auto-generated metric names are not hardcoded in this repository; they
 - `internal/observability/redis_metrics.go`
 - `internal/http/handler/auth_handler.go`
 - `internal/http/handler/admin_handler.go`
+- `internal/http/handler/user_handler.go`
 - `internal/http/middleware/auth_middleware.go`
 - `internal/http/middleware/security_middleware.go`
 - `internal/http/middleware/rate_limit_middleware.go`

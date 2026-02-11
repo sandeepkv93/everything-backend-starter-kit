@@ -30,31 +30,37 @@ func NewUserHandler(userSvc service.UserServiceInterface, sessionSvc service.Ses
 func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, _, err := authUserIDAndClaims(r)
 	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "unauthorized")
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
 		return
 	}
 	u, _, err := h.userSvc.GetByID(userID)
 	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "not_found")
 		response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "user not found", nil)
 		return
 	}
+	observability.RecordUserProfileEvent(r.Context(), "success")
 	response.JSON(w, r, http.StatusOK, u)
 }
 
 func (h *UserHandler) Sessions(w http.ResponseWriter, r *http.Request) {
 	userID, claims, err := authUserIDAndClaims(r)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "list", "error")
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
 		return
 	}
 
 	currentSessionID, err := h.sessionSvc.ResolveCurrentSessionID(r, claims, userID)
 	if err != nil && !errors.Is(err, repository.ErrSessionNotFound) {
+		observability.RecordSessionManagementEvent(r.Context(), "list", "error")
 		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to resolve current session", nil)
 		return
 	}
 	sessionViews, err := h.sessionSvc.ListActiveSessions(userID, currentSessionID)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "list", "error")
 		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to list sessions", nil)
 		return
 	}
@@ -68,12 +74,14 @@ func (h *UserHandler) Sessions(w http.ResponseWriter, r *http.Request) {
 		Outcome:     "success",
 		Reason:      "sessions_loaded",
 	}, "count", len(sessionViews), "current_session_id", currentSessionID)
+	observability.RecordSessionManagementEvent(r.Context(), "list", "success")
 	response.JSON(w, r, http.StatusOK, sessionViews)
 }
 
 func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	userID, _, err := authUserIDAndClaims(r)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "error")
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
 		return
 	}
@@ -81,6 +89,7 @@ func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	rawSessionID := chi.URLParam(r, "session_id")
 	sessionID64, err := strconv.ParseUint(rawSessionID, 10, 64)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "error")
 		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid session id", nil)
 		return
 	}
@@ -89,9 +98,11 @@ func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	status, err := h.sessionSvc.RevokeSession(userID, sessionID)
 	if err != nil {
 		if errors.Is(err, repository.ErrSessionNotFound) {
+			observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "not_found")
 			response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "session not found", nil)
 			return
 		}
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "error")
 		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to revoke session", nil)
 		return
 	}
@@ -105,6 +116,7 @@ func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		Outcome:     "success",
 		Reason:      status,
 	}, "status", status)
+	observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "success")
 	response.JSON(w, r, http.StatusOK, map[string]any{
 		"session_id": sessionID,
 		"status":     status,
@@ -114,18 +126,21 @@ func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Request) {
 	userID, claims, err := authUserIDAndClaims(r)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_others", "error")
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
 		return
 	}
 
 	currentSessionID, err := h.sessionSvc.ResolveCurrentSessionID(r, claims, userID)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_others", "error")
 		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "unable to determine current session", nil)
 		return
 	}
 
 	revokedCount, err := h.sessionSvc.RevokeOtherSessions(userID, currentSessionID)
 	if err != nil {
+		observability.RecordSessionManagementEvent(r.Context(), "revoke_others", "error")
 		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to revoke other sessions", nil)
 		return
 	}
@@ -139,6 +154,8 @@ func (h *UserHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Request
 		Outcome:     "success",
 		Reason:      "bulk_revoke",
 	}, "current_session_id", currentSessionID, "revoked_count", revokedCount)
+	observability.RecordSessionManagementEvent(r.Context(), "revoke_others", "success")
+	observability.RecordSessionRevokedCount(r.Context(), "revoke_others", revokedCount)
 	response.JSON(w, r, http.StatusOK, map[string]any{
 		"current_session_id": currentSessionID,
 		"revoked_count":      revokedCount,
