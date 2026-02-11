@@ -39,10 +39,10 @@ go_test(
     ],
     embed = [":middleware"],
     deps = [
-        "@com_github_alicebob_miniredis_v2//:miniredis",
-        "@com_github_redis_go_redis_v9//:go-redis",
         "//internal/security",
         "//internal/service",
+        "@com_github_alicebob_miniredis_v2//:miniredis",
         "@com_github_go_chi_chi_v5//:chi",
+        "@com_github_redis_go_redis_v9//:go-redis",
     ],
 )
