@@ -6,6 +6,7 @@ go_test(
         "admin_list_cache_test.go",
         "admin_list_pagination_test.go",
         "admin_rbac_write_test.go",
+        "admin_rbac_mutation_matrix_test.go",
         "audit_taxonomy_test.go",
         "auth_abuse_test.go",
         "auth_google_oauth_test.go",
@@ -24,6 +25,7 @@ go_test(
     deps = [
         "//internal/config",
         "//internal/database",
+        "//internal/domain",
         "//internal/http/handler",
         "//internal/http/middleware",
         "//internal/http/router",

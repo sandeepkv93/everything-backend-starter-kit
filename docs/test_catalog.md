@@ -4,12 +4,12 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 42
+- Total test files: 43
 - Unit test files: 25
-- Integration test files: 17
-- Total test functions: 148
+- Integration test files: 18
+- Total test functions: 151
 - Unit test functions: 103
-- Integration test functions: 45
+- Integration test functions: 48
 
 ## Unit Tests
 
@@ -72,6 +72,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestAdminListRolesAndPermissionsPaginationFilterSort`, `TestAdminListInvalidSortByRejected`, `TestAdminListUsersPaginationFilterSort`
 - `test/integration/admin_rbac_write_test.go`
   - `TestAdminRBACProtectedRoleDeletionRejected`, `TestAdminRBACPermissionConflict`, `TestAdminRBACSyncIdempotent`
+- `test/integration/admin_rbac_mutation_matrix_test.go`
+  - `TestAdminRoleUpdateMutationMatrix`, `TestAdminPermissionMutationMatrix`, `TestAdminSetUserRolesValidationAndServiceError`
 - `test/integration/audit_taxonomy_test.go`
   - `TestAuditTaxonomySchemaAndKeyEndpointEvents`
 - `test/integration/auth_abuse_test.go`

@@ -38,29 +38,7 @@ Most meaningful gaps are concentrated in:
 
 ## P0 Gaps (Highest Risk)
 
-### 1) Admin write mutation matrix is incomplete (integration)
-
-Current state:
-
-- Covered: role create conflict, protected role delete, sync idempotency, some idempotent create flows.
-- Not covered: most update/delete/mutation failure branches.
-
-Missing scenarios:
-
-- `PATCH /api/v1/admin/roles/{id}` success and validation failures.
-- `PATCH /api/v1/admin/roles/{id}` lockout-prevention rejection (`FORBIDDEN`).
-- `PATCH /api/v1/admin/roles/{id}` protected-role rejection.
-- `PATCH /api/v1/admin/roles/{id}` unknown role (`NOT_FOUND`).
-- `POST /api/v1/admin/permissions` invalid resource/action format (`BAD_REQUEST`).
-- `PATCH /api/v1/admin/permissions/{id}` success, conflict, not-found, protected-permission rejection, lockout rejection.
-- `DELETE /api/v1/admin/permissions/{id}` success, not-found, protected rejection, lockout rejection.
-- `PATCH /api/v1/admin/users/{id}/roles` invalid user id and service error path.
-
-Why P0:
-
-- High authorization and governance blast radius; many policy-protection branches are unproven.
-
-### 2) `AuthService` has large untested business logic (unit)
+### 1) `AuthService` has large untested business logic (unit)
 
 Current state:
 
@@ -83,7 +61,7 @@ Why P0:
 
 - This service carries critical auth correctness and account recovery behavior.
 
-### 3) Idempotency middleware branch coverage is incomplete (unit)
+### 2) Idempotency middleware branch coverage is incomplete (unit)
 
 Current state:
 
@@ -230,16 +208,14 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P0-1: Add admin mutation integration matrix for role/permission update/delete and lockout/protected checks.
-2. P0-2: Add `internal/service/auth_service_test.go` with table-driven branch coverage.
-3. P0-3: Add `internal/http/middleware/idempotency_middleware_test.go` for complete branch matrix.
-5. P1-5/6: Add user/admin/auth handler unit tests and health/router integration tests.
-6. P1-7/8: Fill repository and Redis-store unit tests.
-7. P1-9/10 and P2: Observability/security/tooling hardening coverage.
+1. P0-1: Add `internal/service/auth_service_test.go` with table-driven branch coverage.
+2. P0-2: Add `internal/http/middleware/idempotency_middleware_test.go` for complete branch matrix.
+3. P1-5/6: Add user/admin/auth handler unit tests and health/router integration tests.
+4. P1-7/8: Fill repository and Redis-store unit tests.
+5. P1-9/10 and P2: Observability/security/tooling hardening coverage.
 
 ## Concrete New Test Files to Add
 
-- `test/integration/admin_rbac_mutation_matrix_test.go`
 - `test/integration/health_endpoints_test.go`
 - `internal/service/auth_service_test.go`
 - `internal/http/middleware/idempotency_middleware_test.go`

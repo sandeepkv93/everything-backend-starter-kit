@@ -91,6 +91,7 @@ type authTestServerOptions struct {
 	rbacPermCache  service.RBACPermissionCacheStore
 	routePolicies  router.RouteRateLimitPolicies
 	oauthProvider  service.OAuthProvider
+	adminUserSvc   service.UserServiceInterface
 }
 
 func TestAuthLifecycleLoginRefreshLogoutRevoked(t *testing.T) {
@@ -359,6 +360,10 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 
 	authHandler := handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, bypassEvaluator, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)
 	userHandler := handler.NewUserHandler(userSvc, sessionSvc)
+	adminUserSvc := opts.adminUserSvc
+	if adminUserSvc == nil {
+		adminUserSvc = userSvc
+	}
 	permissionCache := opts.rbacPermCache
 	if permissionCache == nil {
 		permissionCache = service.NewInMemoryRBACPermissionCacheStore()
@@ -370,9 +375,9 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 	}
 	var adminHandler *handler.AdminHandler
 	if opts.adminListCache != nil {
-		adminHandler = handler.NewAdminHandler(userSvc, userRepo, roleRepo, permRepo, rbac, permissionResolver, opts.adminListCache, negativeCache, db, cfg)
+		adminHandler = handler.NewAdminHandler(adminUserSvc, userRepo, roleRepo, permRepo, rbac, permissionResolver, opts.adminListCache, negativeCache, db, cfg)
 	} else {
-		adminHandler = handler.NewAdminHandler(userSvc, userRepo, roleRepo, permRepo, rbac, permissionResolver, service.NewNoopAdminListCacheStore(), negativeCache, db, cfg)
+		adminHandler = handler.NewAdminHandler(adminUserSvc, userRepo, roleRepo, permRepo, rbac, permissionResolver, service.NewNoopAdminListCacheStore(), negativeCache, db, cfg)
 	}
 	var idempotencyFactory router.IdempotencyMiddlewareFactory
 	if cfg.IdempotencyEnabled {
