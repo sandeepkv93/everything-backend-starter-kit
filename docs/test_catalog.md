@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 64
-- Unit test files: 45
+- Total test files: 68
+- Unit test files: 49
 - Integration test files: 19
-- Total test functions: 201
-- Unit test functions: 152
+- Total test functions: 213
+- Unit test functions: 164
 - Integration test functions: 49
 
 ## Unit Tests
@@ -43,8 +43,16 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestRouterHealthReadyNilAndUnreadyBranches`, `TestRouterHealthLiveAlwaysOKWithDefaultLimiter`, `TestRouterFallbackGlobalRateLimiterWhenCustomNil`, `TestRouterRoutePolicyOverridesPerNamedPolicy`, `TestRouterCSRFScopeOnSensitiveRoutes`
 - `internal/observability/audit_test.go`
   - `TestAuditEventValidateRejectsMissingEventName`, `TestBuildAuditEventIncludesRequiredFields`
+- `internal/observability/logging_test.go`
+  - `TestParseLogLevel`, `TestMultiHandlerEnabledAndHandle`, `TestTraceContextHandlerAddsTraceFields`
+- `internal/observability/metrics_test.go`
+  - `TestRecordMetricHelpersNoPanicWhenUninitialized`, `TestRecordMetricHelpersEmitExpectedLabelCardinality`, `TestInitMetricsDisabledReturnsProvider`
 - `internal/observability/redis_metrics_test.go`
   - `TestClassifyKeyspaceOutcomeGet`, `TestClassifyKeyspaceOutcomeMGet`, `TestClassifyRedisError`, `TestClampRatio`
+- `internal/observability/runtime_test.go`
+  - `TestRuntimeShutdownNilAndEmpty`, `TestInitRuntimeAllDisabled`, `TestInitRuntimeMetricsErrorBranch`, `TestInitRuntimeTracingErrorBranch`
+- `internal/observability/tracing_test.go`
+  - `TestInitTracingDisabledBranch`, `TestInitTracingExporterErrorBranch`
 - `internal/repository/local_credential_repository_test.go`
   - `TestLocalCredentialRepositoryFindByEmailJoinAndUpdates`
 - `internal/repository/oauth_repository_test.go`

@@ -11,10 +11,10 @@ This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `
 
 Current baseline from catalog:
 
-- Test files: 64
-- Unit test files: 45
+- Test files: 68
+- Unit test files: 49
 - Integration test files: 19
-- Declared test functions: 201
+- Declared test functions: 213
 
 ## High-Level Coverage Posture
 
@@ -28,24 +28,15 @@ Strong coverage already exists for:
 - Core middleware primitives (auth, RBAC, security headers/body limit, rate limiter behavior)
 - Repository CRUD/filter/sort semantics for user/role/permission/local credential/verification token/oauth/session layers
 - Redis-backed cache/guard/store semantics for admin-list, negative lookup, auth abuse, idempotency, and RBAC permission caches
+- Observability helpers for metrics emission, logging trace-context enrichment, tracing init, and runtime startup/shutdown branches
 
 Most meaningful gaps are concentrated in:
 
 - Service business logic (`SessionService`, `UserService`)
-- Observability utility surfaces with little/no tests
 - Security and middleware adjuncts with sparse edge-path coverage
 - CLI/tooling and startup wiring smoke paths
 
 ## P1 Gaps (Important)
-
-### 9) Observability utility surfaces with little/no tests (unit)
-
-Missing scenarios:
-
-- `internal/observability/metrics.go`: each metric helper does not panic and sets expected label cardinality constraints.
-- `internal/observability/logging.go`: request log field extraction and fallback values.
-- `internal/observability/tracing.go`: tracer init no-op/fallback branches.
-- `internal/observability/runtime.go`: runtime metrics start/stop behavior.
 
 ### 10) Security and middleware adjunct gaps (unit)
 
@@ -91,7 +82,7 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P1-9/10: Observability and security/middleware adjunct unit tests.
+1. P1-10: Security/middleware adjunct unit tests.
 2. P2: Database/startup/tooling hardening coverage.
 
 ## Concrete New Test Files to Add
