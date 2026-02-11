@@ -183,8 +183,8 @@ Non-scope:
 - `scope` values include: rate limiter scopes (for example `api`, `auth`, `admin_read`) and auth abuse scopes (`auth.login`, `auth.password_forgot`)
 
 `http.middleware.validation.events`
-- `middleware` currently emitted: `cors`
-- `outcome` values currently emitted: `allow_origin`, `rejected_origin`, `preflight`
+- `middleware` currently emitted: `cors`, `body_limit`
+- `outcome` values currently emitted: `allow_origin`, `rejected_origin`, `preflight`, `rejected_too_large`, `read_error`
 
 `admin.rbac.sync.report`
 - `field` values: `created_permissions`, `created_roles`, `bound_permissions`, `noop`

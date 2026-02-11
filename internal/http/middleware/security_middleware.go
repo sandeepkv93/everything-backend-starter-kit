@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"context"
+	"errors"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -59,10 +62,41 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 func BodyLimit(maxBytes int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			r.Body = &bodyLimitObserver{
+				readCloser: http.MaxBytesReader(w, r.Body, maxBytes),
+				ctx:        r.Context(),
+			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+type bodyLimitObserver struct {
+	readCloser io.ReadCloser
+	ctx        context.Context
+	emitted    bool
+}
+
+func (o *bodyLimitObserver) Read(p []byte) (int, error) {
+	n, err := o.readCloser.Read(p)
+	if err == nil || errors.Is(err, io.EOF) || o.emitted {
+		return n, err
+	}
+
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		observability.RecordMiddlewareValidationEvent(o.ctx, "body_limit", "rejected_too_large")
+		o.emitted = true
+		return n, err
+	}
+
+	observability.RecordMiddlewareValidationEvent(o.ctx, "body_limit", "read_error")
+	o.emitted = true
+	return n, err
+}
+
+func (o *bodyLimitObserver) Close() error {
+	return o.readCloser.Close()
 }
 
 func CSRFMiddleware(next http.Handler) http.Handler {

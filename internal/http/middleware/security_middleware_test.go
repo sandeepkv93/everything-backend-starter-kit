@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -69,6 +72,45 @@ func TestCSRFMiddlewareRejectsMissingCookie(t *testing.T) {
 
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 without csrf cookie, got %d", rr.Code)
+	}
+}
+
+func TestBodyLimitAllowsSmallPayload(t *testing.T) {
+	h := BodyLimit(16)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.ReadAll(r.Body); err != nil {
+			t.Fatalf("unexpected read error: %v", err)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/login", strings.NewReader(`{"a":1}`))
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("expected 204 for small payload, got %d", rr.Code)
+	}
+}
+
+func TestBodyLimitRejectsLargePayload(t *testing.T) {
+	h := BodyLimit(8)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := io.ReadAll(r.Body)
+		if err == nil {
+			t.Fatal("expected body read error for oversized payload")
+		}
+		var maxBytesErr *http.MaxBytesError
+		if !errors.As(err, &maxBytesErr) {
+			t.Fatalf("expected MaxBytesError, got %v", err)
+		}
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+	}))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/local/login", strings.NewReader("123456789"))
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 for oversized payload, got %d", rr.Code)
 	}
 }
 
