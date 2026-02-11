@@ -35,5 +35,9 @@ go_test(
         "security_middleware_test.go",
     ],
     embed = [":middleware"],
-    deps = ["//internal/security"],
+    deps = [
+        "//internal/security",
+        "//internal/service",
+        "@com_github_go_chi_chi_v5//:chi",
+    ],
 )
