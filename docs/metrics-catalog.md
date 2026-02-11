@@ -112,7 +112,7 @@ Non-scope:
 - `status`: `success`, `not_found`, `error`
 
 `session.revoked.count`
-- `action` currently emitted: `revoke_others`
+- `action` currently emitted: `revoke_others`, `revoke_by_user`
 
 `user.profile.events`
 - `outcome`: `success`, `not_found`, `unauthorized`
@@ -203,7 +203,7 @@ Non-scope:
 - `namespace` values include admin list namespaces such as `admin.users.list`, `admin.roles.list`, `admin.permissions.list`
 
 `admin.lookup.negative.effectiveness`
-- `outcome` values currently emitted: `prevented_db_fetch`
+- `outcome` values currently emitted: `prevented_db_fetch`, `stale_false_positive`
 
 `config.validation.events`
 - `profile` is normalized from `APP_ENV` (for example `development`, `staging`, `production`)

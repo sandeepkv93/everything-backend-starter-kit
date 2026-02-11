@@ -332,20 +332,33 @@ func (h *AdminHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleCacheKey := strconv.FormatUint(uint64(roleID), 10)
+	var before *domain.Role
 	if h.readNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey) {
-		response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
-		return
-	}
-	before, err := h.roleRepo.FindByID(roleID)
-	if err != nil {
-		if errors.Is(err, repository.ErrRoleNotFound) {
-			h.writeNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey)
-			response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+		cachedRole, findErr := h.roleRepo.FindByID(roleID)
+		if findErr != nil {
+			if errors.Is(findErr, repository.ErrRoleNotFound) {
+				observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "prevented_db_fetch")
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "role", "update", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
 			return
 		}
-		observability.RecordAdminRBACMutation(r.Context(), "role", "update", "error")
-		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
-		return
+		observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "stale_false_positive")
+		before = cachedRole
+	} else {
+		before, err = h.roleRepo.FindByID(roleID)
+		if err != nil {
+			if errors.Is(err, repository.ErrRoleNotFound) {
+				h.writeNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey)
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "role", "update", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
+			return
+		}
 	}
 	if h.isProtectedRole(before.Name) {
 		observability.RecordAdminRBACMutation(r.Context(), "role", "update", "rejected")
@@ -449,20 +462,33 @@ func (h *AdminHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roleCacheKey := strconv.FormatUint(uint64(roleID), 10)
+	var role *domain.Role
 	if h.readNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey) {
-		response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
-		return
-	}
-	role, err := h.roleRepo.FindByID(roleID)
-	if err != nil {
-		if errors.Is(err, repository.ErrRoleNotFound) {
-			h.writeNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey)
-			response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+		cachedRole, findErr := h.roleRepo.FindByID(roleID)
+		if findErr != nil {
+			if errors.Is(findErr, repository.ErrRoleNotFound) {
+				observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "prevented_db_fetch")
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "role", "delete", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
 			return
 		}
-		observability.RecordAdminRBACMutation(r.Context(), "role", "delete", "error")
-		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
-		return
+		observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "stale_false_positive")
+		role = cachedRole
+	} else {
+		role, err = h.roleRepo.FindByID(roleID)
+		if err != nil {
+			if errors.Is(err, repository.ErrRoleNotFound) {
+				h.writeNegativeLookupCache(r, roleNegativeLookupNamespace, roleCacheKey)
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "role not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "role", "delete", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load role", nil)
+			return
+		}
 	}
 	if h.isProtectedRole(role.Name) {
 		observability.RecordAdminRBACMutation(r.Context(), "role", "delete", "rejected")
@@ -617,20 +643,33 @@ func (h *AdminHandler) UpdatePermission(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	permCacheKey := strconv.FormatUint(uint64(permID), 10)
+	var before *domain.Permission
 	if h.readNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey) {
-		response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
-		return
-	}
-	before, err := h.permRepo.FindByID(permID)
-	if err != nil {
-		if errors.Is(err, repository.ErrPermissionNotFound) {
-			h.writeNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey)
-			response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+		cachedPerm, findErr := h.permRepo.FindByID(permID)
+		if findErr != nil {
+			if errors.Is(findErr, repository.ErrPermissionNotFound) {
+				observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "prevented_db_fetch")
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "permission", "update", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
 			return
 		}
-		observability.RecordAdminRBACMutation(r.Context(), "permission", "update", "error")
-		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
-		return
+		observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "stale_false_positive")
+		before = cachedPerm
+	} else {
+		before, err = h.permRepo.FindByID(permID)
+		if err != nil {
+			if errors.Is(err, repository.ErrPermissionNotFound) {
+				h.writeNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey)
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "permission", "update", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
+			return
+		}
 	}
 	if h.isProtectedPermission(before.Resource + ":" + before.Action) {
 		observability.RecordAdminRBACMutation(r.Context(), "permission", "update", "rejected")
@@ -702,20 +741,33 @@ func (h *AdminHandler) DeletePermission(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	permCacheKey := strconv.FormatUint(uint64(permID), 10)
+	var perm *domain.Permission
 	if h.readNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey) {
-		response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
-		return
-	}
-	perm, err := h.permRepo.FindByID(permID)
-	if err != nil {
-		if errors.Is(err, repository.ErrPermissionNotFound) {
-			h.writeNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey)
-			response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+		cachedPerm, findErr := h.permRepo.FindByID(permID)
+		if findErr != nil {
+			if errors.Is(findErr, repository.ErrPermissionNotFound) {
+				observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "prevented_db_fetch")
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "permission", "delete", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
 			return
 		}
-		observability.RecordAdminRBACMutation(r.Context(), "permission", "delete", "error")
-		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
-		return
+		observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "stale_false_positive")
+		perm = cachedPerm
+	} else {
+		perm, err = h.permRepo.FindByID(permID)
+		if err != nil {
+			if errors.Is(err, repository.ErrPermissionNotFound) {
+				h.writeNegativeLookupCache(r, permissionNegativeLookupNamespace, permCacheKey)
+				response.Error(w, r, http.StatusNotFound, "NOT_FOUND", "permission not found", nil)
+				return
+			}
+			observability.RecordAdminRBACMutation(r.Context(), "permission", "delete", "error")
+			response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to load permission", nil)
+			return
+		}
 	}
 	permToken := perm.Resource + ":" + perm.Action
 	if h.isProtectedPermission(permToken) {
@@ -1117,7 +1169,6 @@ func (h *AdminHandler) readNegativeLookupCache(r *http.Request, namespace, key s
 		return false
 	}
 	observability.RecordAdminListCacheEvent(r.Context(), namespace, "negative_hit")
-	observability.RecordAdminNegativeLookupEffectiveness(r.Context(), "prevented_db_fetch")
 	return true
 }
 

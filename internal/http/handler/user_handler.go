@@ -117,6 +117,11 @@ func (h *UserHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		Reason:      status,
 	}, "status", status)
 	observability.RecordSessionManagementEvent(r.Context(), "revoke_one", "success")
+	revokedCount := int64(0)
+	if status == "revoked" {
+		revokedCount = 1
+	}
+	observability.RecordSessionRevokedCount(r.Context(), "revoke_by_user", revokedCount)
 	response.JSON(w, r, http.StatusOK, map[string]any{
 		"session_id": sessionID,
 		"status":     status,
