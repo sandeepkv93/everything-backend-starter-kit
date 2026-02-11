@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 50
-- Unit test files: 31
+- Total test files: 58
+- Unit test files: 39
 - Integration test files: 19
-- Total test functions: 183
-- Unit test functions: 134
+- Total test functions: 192
+- Unit test functions: 143
 - Integration test functions: 49
 
 ## Unit Tests
@@ -45,8 +45,22 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestAuditEventValidateRejectsMissingEventName`, `TestBuildAuditEventIncludesRequiredFields`
 - `internal/observability/redis_metrics_test.go`
   - `TestClassifyKeyspaceOutcomeGet`, `TestClassifyKeyspaceOutcomeMGet`, `TestClassifyRedisError`, `TestClampRatio`
+- `internal/repository/local_credential_repository_test.go`
+  - `TestLocalCredentialRepositoryFindByEmailJoinAndUpdates`
+- `internal/repository/oauth_repository_test.go`
+  - `TestOAuthRepositoryCreateFindAndUniqueness`
+- `internal/repository/pagination_test.go`
+  - `TestNormalizePageRequestBounds`, `TestCalcTotalPages`
+- `internal/repository/permission_repository_test.go`
+  - `TestPermissionRepositoryListPagedFindByPairsAndConflicts`
+- `internal/repository/role_repository_test.go`
+  - `TestRoleRepositoryCreateUpdateDeleteAndConflict`
 - `internal/repository/session_repository_test.go`
   - `TestSessionRepositoryListActiveByUserID`, `TestSessionRepositoryRevokeScopeByUser`
+- `internal/repository/user_repository_test.go`
+  - `TestUserRepositoryListPagedFiltersSortAndRoleAssociations`
+- `internal/repository/verification_token_repository_test.go`
+  - `TestVerificationTokenRepositoryInvalidateFindConsume`, `TestVerificationTokenRepositoryConsumeIdempotencyAndConcurrency`
 - `internal/security/jwt_test.go`
   - `TestJWTAccessAndRefreshParsing`
 - `internal/security/password_test.go`

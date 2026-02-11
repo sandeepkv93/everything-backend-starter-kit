@@ -24,7 +24,17 @@ go_library(
 
 go_test(
     name = "repository_test",
-    srcs = ["session_repository_test.go"],
+    srcs = [
+        "local_credential_repository_test.go",
+        "oauth_repository_test.go",
+        "pagination_test.go",
+        "permission_repository_test.go",
+        "repository_test_helpers_test.go",
+        "role_repository_test.go",
+        "session_repository_test.go",
+        "user_repository_test.go",
+        "verification_token_repository_test.go",
+    ],
     embed = [":repository"],
     deps = [
         "//internal/domain",

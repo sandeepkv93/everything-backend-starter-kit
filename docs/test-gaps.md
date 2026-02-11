@@ -11,10 +11,10 @@ This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `
 
 Current baseline from catalog:
 
-- Test files: 50
-- Unit test files: 31
+- Test files: 58
+- Unit test files: 39
 - Integration test files: 19
-- Declared test functions: 183
+- Declared test functions: 192
 
 ## High-Level Coverage Posture
 
@@ -26,31 +26,15 @@ Strong coverage already exists for:
 - Admin list pagination/cache/singleflight/etag flows
 - Idempotency and Redis race/replay scenarios
 - Core middleware primitives (auth, RBAC, security headers/body limit, rate limiter behavior)
+- Repository CRUD/filter/sort semantics for user/role/permission/local credential/verification token/oauth/session layers
 
 Most meaningful gaps are concentrated in:
 
 - Service business logic (`SessionService`, `UserService`)
-- Repository CRUD/filter/sort semantics (except session repository)
 - Redis-backed cache/guard/store implementations (direct unit tests)
 - CLI/tooling and startup wiring smoke paths
 
 ## P1 Gaps (Important)
-
-### 7) Repository layer has sparse direct coverage (unit/integration)
-
-Current state:
-
-- Only `session_repository_test.go` exists.
-
-Missing scenarios:
-
-- `user_repository.go`: filters (`email`, `status`, `role`), sort combinations, pagination boundaries, role association semantics.
-- `role_repository.go`: create/update with permission sets, conflict paths, delete not-found handling.
-- `permission_repository.go`: list-paged filters/sorts, `FindByPairs` completeness and dedupe behavior, conflict/not-found branches.
-- `local_credential_repository.go`: find-by-email join semantics, mark verified timestamp behavior, update password.
-- `verification_token_repository.go`: invalidate-active semantics, consume idempotency/concurrency safety.
-- `oauth_repository.go`: find/create uniqueness behavior.
-- `pagination.go`: bounds and normalization for invalid inputs.
 
 ### 8) Redis-backed service stores are not directly tested (unit)
 
@@ -115,17 +99,11 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P1-7/8: Fill repository and Redis-store unit tests.
+1. P1-8: Fill Redis-store unit tests.
 2. P1-9/10 and P2: Observability/security/tooling hardening coverage.
 
 ## Concrete New Test Files to Add
 
-- `internal/repository/user_repository_test.go`
-- `internal/repository/role_repository_test.go`
-- `internal/repository/permission_repository_test.go`
-- `internal/repository/local_credential_repository_test.go`
-- `internal/repository/verification_token_repository_test.go`
-- `internal/repository/oauth_repository_test.go`
 - `internal/service/idempotency_store_redis_test.go`
 - `internal/service/auth_abuse_guard_redis_test.go`
 - `internal/service/admin_list_cache_redis_test.go`
