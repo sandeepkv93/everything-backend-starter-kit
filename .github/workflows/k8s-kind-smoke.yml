@@ -1,0 +1,66 @@
+name: k8s-kind-smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'k8s/**'
+      - 'taskfiles/k8s.yaml'
+      - 'Taskfile.yaml'
+      - 'Dockerfile'
+      - '.github/workflows/k8s-kind-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Task
+        uses: arduino/setup-task@v2
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+
+      - name: Prepare local k8s secrets env
+        run: |
+          cat > .secrets.k8s.app.env <<'SECRETS'
+          DB_PASSWORD=app
+          DATABASE_URL=postgres://app:app@postgres:5432/app?sslmode=disable
+          JWT_ACCESS_SECRET=12345678901234567890123456789012
+          JWT_REFRESH_SECRET=12345678901234567890123456789013
+          REFRESH_TOKEN_PEPPER=1234567890abcdef
+          OAUTH_STATE_SECRET=1234567890abcdef
+          GOOGLE_OAUTH_CLIENT_ID=
+          GOOGLE_OAUTH_CLIENT_SECRET=
+          GOOGLE_OAUTH_REDIRECT_URL=
+          REDIS_PASSWORD=app
+          SECRETS
+
+      - name: Bring up kind + k8s dev overlay
+        run: task k8s:setup-full
+
+      - name: Health checks
+        run: task k8s:health-check
+
+      - name: Cluster status on failure
+        if: failure()
+        run: |
+          task k8s:status || true
+          task k8s:obs-status || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          task k8s:cleanup || true
+          task k8s:cluster-delete || true

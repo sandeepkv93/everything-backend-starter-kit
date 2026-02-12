@@ -69,6 +69,10 @@ tasks:
     cmds:
       - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/status.sh
 
+  k8s:obs-status:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/obs-status.sh
+
   k8s:logs-api:
     cmds:
       - kubectl -n {{.K8S_NAMESPACE}} logs deploy/secure-observable-api --tail=200

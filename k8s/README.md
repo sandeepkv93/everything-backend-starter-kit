@@ -132,6 +132,22 @@ Development overlay deploy (NodePort API service):
 task k8s:deploy-dev
 ```
 
+Observability overlay deploy:
+
+```bash
+task k8s:deploy-observability
+task k8s:obs-status
+task k8s:port-forward-grafana
+```
+
+Telemetry correlation validation:
+
+```bash
+kubectl -n secure-observable port-forward svc/secure-observable-api 8080:8080
+kubectl -n secure-observable port-forward svc/grafana 3000:3000
+go run ./cmd/obscheck run --ci --grafana-url http://localhost:3000 --base-url http://localhost:8080
+```
+
 ## 5) Verify health
 
 ```bash

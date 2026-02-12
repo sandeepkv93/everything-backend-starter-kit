@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: otel-collector-config
+    files:
+      - config/otel-collector-config.yaml
+  - name: tempo-config
+    files:
+      - config/tempo.yaml
+  - name: loki-config
+    files:
+      - config/loki.yaml
+  - name: mimir-config
+    files:
+      - config/mimir.yaml
+  - name: grafana-datasources
+    files:
+      - provisioning/datasources.yaml
+  - name: grafana-dashboards-provider
+    files:
+      - provisioning/dashboards.yaml
+  - name: grafana-dashboards
+    files:
+      - dashboards/api-overview.json
+      - dashboards/logs-overview.json
+      - dashboards/trace-overview.json

@@ -44,4 +44,16 @@ if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" ==
   kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
 fi
 
+if [[ "${PROFILE}" == "observability" ]]; then
+  kubectl -n "${NAMESPACE}" rollout restart deployment/secure-observable-api
+  kubectl -n "${NAMESPACE}" rollout status statefulset/postgres --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/otel-collector --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/tempo --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/loki --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/mimir --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/grafana --timeout=240s
+fi
+
 echo "Deployed profile '${PROFILE}' from ${TARGET}"
