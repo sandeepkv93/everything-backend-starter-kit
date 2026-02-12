@@ -19,5 +19,9 @@ go test ./internal/http/middleware -run=^$ -fuzz=FuzzRedisFixedWindowLimiterAllo
 go test ./internal/service -run=^$ -fuzz=FuzzAuthServiceParseUserID -fuzztime="${FUZZ_SMOKE_TIME}"
 go test ./internal/service -run=^$ -fuzz=FuzzAuthServiceTokenHandlingRejectsInvalid -fuzztime="${FUZZ_SMOKE_TIME}"
 go test ./internal/service -run=^$ -fuzz=FuzzClassifyOAuthErrorRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/repository -run=^$ -fuzz=FuzzNormalizePageRequestInvariants -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/repository -run=^$ -fuzz=FuzzCalcTotalPagesInvariants -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/handler -run=^$ -fuzz=FuzzParseAdminListPageRequestRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/handler -run=^$ -fuzz=FuzzParseAdminListSortParamsRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
 
 echo "ci: fuzz smoke passed"

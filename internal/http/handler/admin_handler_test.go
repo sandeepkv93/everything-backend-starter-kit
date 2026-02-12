@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -501,6 +502,110 @@ func TestAdminHandlerLockoutHelpersAndListParserFailures(t *testing.T) {
 					t.Fatalf("expected 400, got %d", rr.Code)
 				}
 			})
+		}
+	})
+}
+
+func FuzzParseAdminListPageRequestRobustness(f *testing.F) {
+	f.Add("", "")
+	f.Add("1", "20")
+	f.Add("0", "0")
+	f.Add("-10", "-5")
+	f.Add("999999999", "101")
+	f.Add("🔥", "∞")
+
+	f.Fuzz(func(t *testing.T, rawPage, rawPageSize string) {
+		if len(rawPage) > 256 {
+			rawPage = rawPage[:256]
+		}
+		if len(rawPageSize) > 256 {
+			rawPageSize = rawPageSize[:256]
+		}
+
+		q := url.Values{}
+		q.Set("page", rawPage)
+		q.Set("page_size", rawPageSize)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?"+q.Encode(), nil)
+		got, err := parsePageRequest(req)
+		if err == nil {
+			if got.Page < 1 {
+				t.Fatalf("page must be >= 1, got %d", got.Page)
+			}
+			if got.PageSize < 1 || got.PageSize > repository.MaxPageSize {
+				t.Fatalf("page_size out of bounds: %d", got.PageSize)
+			}
+			again, errAgain := parsePageRequest(req)
+			if errAgain != nil {
+				t.Fatalf("unexpected non-deterministic error on same input: %v", errAgain)
+			}
+			if got != again {
+				t.Fatalf("parsePageRequest must be deterministic: first=%+v second=%+v", got, again)
+			}
+			return
+		}
+
+		if got != (repository.PageRequest{}) {
+			t.Fatalf("expected zero-value PageRequest on error, got %+v", got)
+		}
+	})
+}
+
+func FuzzParseAdminListSortParamsRobustness(f *testing.F) {
+	f.Add("", "", "created_at")
+	f.Add("email", "asc", "created_at")
+	f.Add("name", "desc", "created_at")
+	f.Add("nope", "up", "created_at")
+	f.Add("🔥", "∞", "created_at")
+
+	allowed := map[string]struct{}{
+		"id":         {},
+		"created_at": {},
+		"updated_at": {},
+		"email":      {},
+		"name":       {},
+		"status":     {},
+	}
+
+	f.Fuzz(func(t *testing.T, rawSortBy, rawSortOrder, defaultField string) {
+		if len(rawSortBy) > 256 {
+			rawSortBy = rawSortBy[:256]
+		}
+		if len(rawSortOrder) > 256 {
+			rawSortOrder = rawSortOrder[:256]
+		}
+		if len(defaultField) > 64 {
+			defaultField = defaultField[:64]
+		}
+
+		// Keep default field valid for success-path invariants while still fuzzing query values.
+		defaultField = "created_at"
+
+		q := url.Values{}
+		q.Set("sort_by", rawSortBy)
+		q.Set("sort_order", rawSortOrder)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/users?"+q.Encode(), nil)
+		sortBy, sortOrder, err := parseSortParams(req, defaultField, allowed)
+		if err == nil {
+			if _, ok := allowed[sortBy]; !ok {
+				t.Fatalf("sort_by must be in allowlist, got %q", sortBy)
+			}
+			if sortOrder != "asc" && sortOrder != "desc" {
+				t.Fatalf("sort_order must be asc or desc, got %q", sortOrder)
+			}
+			againBy, againOrder, errAgain := parseSortParams(req, defaultField, allowed)
+			if errAgain != nil {
+				t.Fatalf("unexpected non-deterministic error on same input: %v", errAgain)
+			}
+			if sortBy != againBy || sortOrder != againOrder {
+				t.Fatalf("parseSortParams must be deterministic: first=(%s,%s) second=(%s,%s)", sortBy, sortOrder, againBy, againOrder)
+			}
+			return
+		}
+
+		if sortBy != "" || sortOrder != "" {
+			t.Fatalf("expected empty outputs on error, got sortBy=%q sortOrder=%q", sortBy, sortOrder)
 		}
 	})
 }

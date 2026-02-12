@@ -7,8 +7,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - Total test files: 85
 - Unit test files: 66
 - Integration test files: 19
-- Total test functions: 273
-- Unit test functions: 224
+- Total test functions: 277
+- Unit test functions: 228
 - Integration test functions: 49
 
 ## Unit Tests
@@ -46,7 +46,7 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/http/middleware/security_middleware_test.go`
   - `TestCSRFMiddlewareRejectsMismatch`, `TestCORSAllowsKnownOrigin`, `TestCSRFMiddlewareAllowsMatchingToken`, `TestCSRFPathGroup`, `TestCORSRejectsUnknownOrigin`, `TestCORSPreflight`, `TestCSRFMiddlewareRejectsMissingCookie`, `TestBodyLimitAllowsSmallPayload`, `TestBodyLimitRejectsLargePayload`
 - `internal/http/handler/admin_handler_test.go`
-  - `TestAdminHandlerConditionalETag304`, `TestAdminHandlerNegativeLookupStaleFalsePositiveRoleUpdate`, `TestAdminHandlerMutationCacheInvalidation`, `TestAdminHandlerLockoutHelpersAndListParserFailures`
+  - `TestAdminHandlerConditionalETag304`, `TestAdminHandlerNegativeLookupStaleFalsePositiveRoleUpdate`, `TestAdminHandlerMutationCacheInvalidation`, `TestAdminHandlerLockoutHelpersAndListParserFailures`, `FuzzParseAdminListPageRequestRobustness`, `FuzzParseAdminListSortParamsRobustness`
 - `internal/http/handler/auth_handler_test.go`
   - `TestAuthHandlerLocalChangePasswordBranchesAndCookieSideEffects`, `TestAuthHandlerBypassAndLocalFlowErrorMappings`, `TestAuthHandlerRefreshAndLogoutCookieSideEffects`
 - `internal/http/handler/user_handler_test.go`
@@ -74,7 +74,7 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/repository/oauth_repository_test.go`
   - `TestOAuthRepositoryCreateFindAndUniqueness`
 - `internal/repository/pagination_test.go`
-  - `TestNormalizePageRequestBounds`, `TestCalcTotalPages`
+  - `TestNormalizePageRequestBounds`, `TestCalcTotalPages`, `FuzzNormalizePageRequestInvariants`, `FuzzCalcTotalPagesInvariants`
 - `internal/repository/permission_repository_test.go`
   - `TestPermissionRepositoryListPagedFindByPairsAndConflicts`
 - `internal/repository/repository_test_helpers_test.go`
