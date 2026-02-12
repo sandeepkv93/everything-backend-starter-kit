@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "domain",
@@ -14,4 +14,10 @@ go_library(
     ],
     importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain",
     visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "domain_test",
+    srcs = ["models_test.go"],
+    embed = [":domain"],
 )

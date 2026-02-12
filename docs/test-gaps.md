@@ -11,10 +11,10 @@ This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `
 
 Current baseline from catalog:
 
-- Test files: 82
-- Unit test files: 63
+- Test files: 83
+- Unit test files: 64
 - Integration test files: 19
-- Declared test functions: 246
+- Declared test functions: 251
 
 ## High-Level Coverage Posture
 
@@ -31,28 +31,11 @@ Strong coverage already exists for:
 - Observability helpers for metrics emission, logging trace-context enrichment, tracing init, and runtime startup/shutdown branches
 - Security/middleware adjunct branches covering cookie semantics, bypass policy edges, request logging fields, and Redis limiter adapter behavior
 - Database/startup/tooling paths covering postgres open failure, migration/seed error branches, app bootstrap wiring, and CLI helper command validation
+- Domain-model-level contract checks for tags, sensitive-field JSON exclusions, index/composite key declarations, and model defaults
 
 Most meaningful gaps are concentrated in:
 
 - Service business logic (`SessionService`, `UserService`)
-- Domain-model-level contract checks
-
-## P2 Gaps (Useful but Lower Immediate Risk)
-
-### 12) Domain model tests
-
-Current state:
-
-- `internal/domain/*.go` has no tests.
-
-Missing scenarios:
-
-- Struct tag/backfill expectations (if relied upon by JSON/API contracts).
-- Field defaults and status constants (if behaviorally significant).
-
-Note:
-
-- Domain models are mostly passive; prioritize above only if model logic/validation is added.
 
 ## Cross-Cutting Quality Gaps
 
@@ -63,12 +46,10 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P2: Domain model contract checks (`internal/domain/*.go`).
-2. P2: Focused `SessionService`/`UserService` unit test expansion.
+1. P2: Focused `SessionService`/`UserService` unit test expansion.
 
 ## Concrete New Test Files to Add
 
-- `internal/domain/models_test.go`
 - `internal/service/session_service_test.go`
 - `internal/service/user_service_test.go`
 

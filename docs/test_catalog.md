@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 82
-- Unit test files: 63
+- Total test files: 83
+- Unit test files: 64
 - Integration test files: 19
-- Total test functions: 246
-- Unit test functions: 197
+- Total test functions: 251
+- Unit test functions: 202
 - Integration test functions: 49
 
 ## Unit Tests
@@ -25,6 +25,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestSeedSyncCreatesDataAndNoopOnSecondRun`, `TestSeedSyncFailureWhenDBClosed`, `TestVerifyLocalEmailValidationAndBehavior`
 - `internal/di/providers_test.go`
   - `TestRoutePolicyAdminWriteUsesSubjectKey`, `TestBuildRoutePolicyLimiterUsesFallbackKeyWhenEmpty`, `TestProvideGlobalRateLimiterUsesSubjectOrIP`, `TestRoutePoliciesNoRedisDoNotRequireContext`, `TestProvideHTTPServer`, `TestProvideForgotRateLimiterFallback`, `TestProvideForgotRateLimiterRedisFailClosed`, `TestProvideForgotRateLimiterRedisFailOpen`, `TestProvideGlobalRateLimiterRedisFailClosed`, `TestProvideRoutePolicyLoginRedisFailOpen`, `TestProvideRouterDependencies`, `TestProvideApp`, `TestStartDBIdempotencyCleanup`, `TestStartDBIdempotencyCleanupDisabledWhenRedisStoreUsed`, `TestProvideRedisClientEnabledForAdminListCache`, `TestProvideRouteRateLimitPolicies`, `TestProvideAuthAbuseGuard`, `TestProvideRequestBypassEvaluator`, `TestComposeRedisPrefix`, `TestRoutePolicyLoginLimiterEnforcesLimit`
+- `internal/domain/models_test.go`
+  - `TestUserModelTagsAndDefaults`, `TestRoleAndPermissionModelContracts`, `TestSensitiveFieldsAreHiddenFromJSON`, `TestSessionAndVerificationTokenIndexContracts`, `TestAssociationJoinModelsHaveCompositePrimaryKeys`
 - `internal/health/checker_test.go`
   - `TestProbeRunnerReady`, `TestProbeRunnerUnready`, `TestProbeRunnerStartupGrace`, `TestHealthOutcome`
 - `internal/http/middleware/auth_middleware_test.go`
@@ -187,6 +189,7 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/repository/BUILD.bazel`: name = "repository_test",
 - `internal/database/BUILD.bazel`: name = "database_test",
 - `internal/app/BUILD.bazel`: name = "app_test",
+- `internal/domain/BUILD.bazel`: name = "domain_test",
 - `internal/config/BUILD.bazel`: name = "config_test",
 - `internal/di/BUILD.bazel`: name = "di_test",
 - `internal/security/BUILD.bazel`: name = "security_test",
