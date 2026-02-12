@@ -266,7 +266,8 @@ This order gets reliable Kubernetes parity quickly, then layers observability co
 
 ### 13.2 Remaining backlog
 - Secret lifecycle hardening:
-  - choose and implement external secret manager path (for example External Secrets + cloud secret backend).
+  - ✅ added optional `k8s/overlays/secrets/external-secrets` path with CI validation hook.
+  - next: wire concrete `ClusterSecretStore` implementations per environment.
   - keep SOPS as fallback for non-cloud local workflows.
 - Capacity and retention hardening:
   - finalize per-component retention and storage sizing defaults for Tempo/Loki/Mimir.

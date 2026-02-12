@@ -139,3 +139,7 @@ tasks:
   k8s:policy-check:
     cmds:
       - bash scripts/ci/run_k8s_policy_check.sh
+
+  k8s:validate-external-secrets:
+    cmds:
+      - bash scripts/ci/run_k8s_external_secrets_validate.sh

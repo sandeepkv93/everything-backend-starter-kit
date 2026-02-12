@@ -106,6 +106,13 @@ task k8s:secrets-generate
 task k8s:secrets-apply
 ```
 
+External Secrets optional overlay (for external secret manager backed environments):
+
+```bash
+task k8s:validate-external-secrets
+kubectl apply -k k8s/overlays/secrets/external-secrets
+```
+
 Encrypted secret path (recommended):
 
 ```bash
