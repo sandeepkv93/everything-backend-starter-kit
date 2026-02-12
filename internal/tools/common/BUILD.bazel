@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "common",
@@ -8,4 +8,13 @@ go_library(
     ],
     importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/common",
     visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "common_test",
+    srcs = [
+        "env_test.go",
+        "output_test.go",
+    ],
+    embed = [":common"],
 )

@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 72
-- Unit test files: 53
+- Total test files: 82
+- Unit test files: 63
 - Integration test files: 19
-- Total test functions: 225
-- Unit test functions: 176
+- Total test functions: 246
+- Unit test functions: 197
 - Integration test functions: 49
 
 ## Unit Tests
@@ -17,6 +17,12 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestValidateTrustedActorBypassRequiresAllowlist`, `TestValidateTrustedActorBypassAcceptsCIDR`, `TestValidateRedisPoolSettings`, `TestValidateNonLocalRedisRequiresACLAndTLS`, `TestValidateRedisNamespacePattern`, `TestValidateIdempotencyDBCleanupSettings`, `TestValidateRateLimitRedisOutagePolicies`, `TestValidateProdProfileDisallowsFailOpenForSensitiveRateLimitScopes`, `TestValidateDevelopmentProfileAllowsRelaxedSettings`, `TestValidateProdProfileStrictRules`
 - `internal/config/metrics_test.go`
   - `TestNormalizeConfigProfile`, `TestClassifyConfigLoadError`
+- `internal/database/migrate_test.go`
+  - `TestMigrateSuccessCreatesTables`, `TestMigrateFailureWhenDBClosed`
+- `internal/database/postgres_test.go`
+  - `TestOpenInvalidDSN`
+- `internal/database/seed_test.go`
+  - `TestSeedSyncCreatesDataAndNoopOnSecondRun`, `TestSeedSyncFailureWhenDBClosed`, `TestVerifyLocalEmailValidationAndBehavior`
 - `internal/di/providers_test.go`
   - `TestRoutePolicyAdminWriteUsesSubjectKey`, `TestBuildRoutePolicyLimiterUsesFallbackKeyWhenEmpty`, `TestProvideGlobalRateLimiterUsesSubjectOrIP`, `TestRoutePoliciesNoRedisDoNotRequireContext`, `TestProvideHTTPServer`, `TestProvideForgotRateLimiterFallback`, `TestProvideForgotRateLimiterRedisFailClosed`, `TestProvideForgotRateLimiterRedisFailOpen`, `TestProvideGlobalRateLimiterRedisFailClosed`, `TestProvideRoutePolicyLoginRedisFailOpen`, `TestProvideRouterDependencies`, `TestProvideApp`, `TestStartDBIdempotencyCleanup`, `TestStartDBIdempotencyCleanupDisabledWhenRedisStoreUsed`, `TestProvideRedisClientEnabledForAdminListCache`, `TestProvideRouteRateLimitPolicies`, `TestProvideAuthAbuseGuard`, `TestProvideRequestBypassEvaluator`, `TestComposeRedisPrefix`, `TestRoutePolicyLoginLimiterEnforcesLimit`
 - `internal/health/checker_test.go`
@@ -47,6 +53,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestError_DefaultEnvelopeWhenProblemNotRequested`, `TestError_ProblemDetailsWhenRequested`, `TestError_ContentNegotiationVariants`, `TestError_StatusTypeCodeConsistencyForKeyStatuses`
 - `internal/http/router/router_test.go`
   - `TestRouterHealthReadyNilAndUnreadyBranches`, `TestRouterHealthLiveAlwaysOKWithDefaultLimiter`, `TestRouterFallbackGlobalRateLimiterWhenCustomNil`, `TestRouterRoutePolicyOverridesPerNamedPolicy`, `TestRouterCSRFScopeOnSensitiveRoutes`
+- `internal/app/app_test.go`
+  - `TestNewAssignsDependenciesAndTimeouts`
 - `internal/observability/audit_test.go`
   - `TestAuditEventValidateRejectsMissingEventName`, `TestBuildAuditEventIncludesRequiredFields`
 - `internal/observability/logging_test.go`
@@ -113,6 +121,18 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestRBACPermissionEvaluation`
 - `internal/service/token_service_test.go`
   - `TestTokenRotateSuccessPreservesFamily`, `TestTokenRotateReuseRevokesFamily`, `TestTokenRotateInvalidDoesNotRevokeActiveSessions`, `TestTokenRotateBackfillsLegacyLineage`
+- `internal/tools/common/env_test.go`
+  - `TestLoadEnvFileMissingIsNoop`, `TestLoadEnvFileLoadsAndPreservesExisting`, `TestLoadEnvFileOpenError`
+- `internal/tools/common/output_test.go`
+  - `TestPrintCIResultJSONOutput`
+- `internal/tools/migrate/command_test.go`
+  - `TestNewRootCommandStructure`, `TestRunCIPathSuccessAndError`, `TestLoadConfigDBEnvParseError`
+- `internal/tools/obscheck/command_test.go`
+  - `TestNewRootCommandHasRun`, `TestGrafanaGETInvalidURLAndHTTPError`, `TestFetchTraceIDFromExemplarNoRecentTrace`, `TestFetchTraceIDFromExemplarFindsRecentTrace`
+- `internal/tools/seed/command_test.go`
+  - `TestNewRootCommandStructure`, `TestRunCIPath`
+- `internal/tools/ui/run_test.go`
+  - `TestModelUpdateAndViewStates`
 - `internal/tools/loadgen/run_test.go`
   - `TestNormalizeProfile`, `TestClassifyStatusClass`
 
@@ -165,10 +185,17 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/http/router/BUILD.bazel`: name = "router_test",
 - `internal/health/BUILD.bazel`: name = "health_test",
 - `internal/repository/BUILD.bazel`: name = "repository_test",
+- `internal/database/BUILD.bazel`: name = "database_test",
+- `internal/app/BUILD.bazel`: name = "app_test",
 - `internal/config/BUILD.bazel`: name = "config_test",
 - `internal/di/BUILD.bazel`: name = "di_test",
 - `internal/security/BUILD.bazel`: name = "security_test",
 - `internal/observability/BUILD.bazel`: name = "observability_test",
+- `internal/tools/common/BUILD.bazel`: name = "common_test",
+- `internal/tools/migrate/BUILD.bazel`: name = "migrate_test",
+- `internal/tools/seed/BUILD.bazel`: name = "seed_test",
+- `internal/tools/obscheck/BUILD.bazel`: name = "obscheck_test",
+- `internal/tools/ui/BUILD.bazel`: name = "ui_test",
 - `internal/tools/loadgen/BUILD.bazel`: name = "loadgen_test",
 - `internal/service/BUILD.bazel`: name = "service_test",
 - `test/integration/BUILD.bazel`: name = "integration_test",

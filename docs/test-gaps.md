@@ -11,10 +11,10 @@ This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `
 
 Current baseline from catalog:
 
-- Test files: 72
-- Unit test files: 53
+- Test files: 82
+- Unit test files: 63
 - Integration test files: 19
-- Declared test functions: 225
+- Declared test functions: 246
 
 ## High-Level Coverage Posture
 
@@ -30,22 +30,14 @@ Strong coverage already exists for:
 - Redis-backed cache/guard/store semantics for admin-list, negative lookup, auth abuse, idempotency, and RBAC permission caches
 - Observability helpers for metrics emission, logging trace-context enrichment, tracing init, and runtime startup/shutdown branches
 - Security/middleware adjunct branches covering cookie semantics, bypass policy edges, request logging fields, and Redis limiter adapter behavior
+- Database/startup/tooling paths covering postgres open failure, migration/seed error branches, app bootstrap wiring, and CLI helper command validation
 
 Most meaningful gaps are concentrated in:
 
 - Service business logic (`SessionService`, `UserService`)
-- CLI/tooling and startup wiring smoke paths
+- Domain-model-level contract checks
 
 ## P2 Gaps (Useful but Lower Immediate Risk)
-
-### 11) Database/startup/tooling paths
-
-Missing scenarios:
-
-- `internal/database/postgres.go`: DSN handling, connect timeout, migration invocation failures.
-- `internal/database/migrate.go`, `internal/database/seed.go`: command execution/reporting branches.
-- `internal/app/app.go`: bootstrap/startup wiring smoke tests.
-- `internal/tools/common/*`, `internal/tools/{migrate,seed,obscheck,ui}/command.go`: CLI arg validation, error propagation, output formatting.
 
 ### 12) Domain model tests
 
@@ -71,15 +63,14 @@ Note:
 
 ## Recommended Implementation Sequence
 
-1. P2: Database/startup/tooling hardening coverage.
-2. P2: Consider focused `SessionService`/`UserService` unit test expansion.
+1. P2: Domain model contract checks (`internal/domain/*.go`).
+2. P2: Focused `SessionService`/`UserService` unit test expansion.
 
 ## Concrete New Test Files to Add
 
-- `internal/database/postgres_test.go`
-- `internal/database/migrate_test.go`
-- `internal/database/seed_test.go`
-- `internal/app/app_test.go`
+- `internal/domain/models_test.go`
+- `internal/service/session_service_test.go`
+- `internal/service/user_service_test.go`
 
 ## Assumptions and Unknowns
 

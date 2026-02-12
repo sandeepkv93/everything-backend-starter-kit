@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "app",
@@ -11,5 +11,15 @@ go_library(
         "//internal/observability",
         "@com_github_redis_go_redis_v9//:go-redis",
         "@io_gorm_gorm//:gorm",
+    ],
+)
+
+go_test(
+    name = "app_test",
+    srcs = ["app_test.go"],
+    embed = [":app"],
+    deps = [
+        "//internal/config",
+        "//internal/health",
     ],
 )
