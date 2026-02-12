@@ -26,6 +26,6 @@ go_test(
         "password_test.go",
         "state_test.go",
     ],
-    data = glob(["testdata/**"]),
+    data = glob(["testdata/**"], allow_empty = True),
     embed = [":security"],
 )
