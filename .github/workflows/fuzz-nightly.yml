@@ -1,0 +1,26 @@
+name: fuzz-nightly
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzz_time:
+        description: "Fuzz duration per target (e.g. 30s, 60s, 120s)"
+        required: false
+        default: "60s"
+
+jobs:
+  long-fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run scheduled long fuzz suite
+        env:
+          FUZZ_LONG_TIME: ${{ github.event.inputs.fuzz_time || '60s' }}
+        run: bash scripts/ci/run_fuzz_long.sh

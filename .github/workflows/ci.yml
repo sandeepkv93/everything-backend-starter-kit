@@ -6,6 +6,20 @@ on:
   pull_request:
 
 jobs:
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run fuzz smoke suite
+        env:
+          FUZZ_SMOKE_TIME: 3s
+        run: bash scripts/ci/run_fuzz_smoke.sh
+
   test:
     runs-on: ubuntu-latest
     steps:

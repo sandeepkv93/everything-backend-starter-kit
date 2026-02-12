@@ -2,9 +2,12 @@ package response
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestError_DefaultEnvelopeWhenProblemNotRequested(t *testing.T) {
@@ -134,4 +137,117 @@ func TestError_StatusTypeCodeConsistencyForKeyStatuses(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzErrorContentNegotiationAndEnvelope(f *testing.F) {
+	f.Add("application/problem+json", "/x", http.StatusBadRequest, "BAD_REQUEST", "invalid payload")
+	f.Add("application/json, application/problem+json;q=0", "/api/v1/me", http.StatusUnauthorized, "UNAUTHORIZED", "missing token")
+	f.Add("text/plain,application/problem+json;q=1.0", "/weird/\u2603", 499, "CUSTOM_CODE", "unicode \u2603 detail")
+	f.Add(strings.Repeat("a", 2048), "/"+strings.Repeat("p", 128), http.StatusInternalServerError, "", strings.Repeat("m", 512))
+
+	f.Fuzz(func(t *testing.T, accept, path string, status int, code, message string) {
+		if len(accept) > 4096 {
+			accept = accept[:4096]
+		}
+		if len(path) > 1024 {
+			path = path[:1024]
+		}
+		if len(code) > 256 {
+			code = code[:256]
+		}
+		if len(message) > 4096 {
+			message = message[:4096]
+		}
+		codeIsValidUTF8 := utf8.ValidString(code)
+		msgIsValidUTF8 := utf8.ValidString(message)
+		path = strings.Map(func(r rune) rune {
+			switch r {
+			case ' ', '\t', '\n', '\r':
+				return '_'
+			default:
+				if r < 0x20 || r == 0x7f {
+					return '_'
+				}
+				return r
+			}
+		}, path)
+		path = strings.ReplaceAll(path, "%", "_")
+		path = strings.ReplaceAll(path, "?", "_")
+		path = strings.ReplaceAll(path, "#", "_")
+		if path == "" || !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+
+		// Keep status in a writable HTTP range while still fuzzing edge values.
+		status = ((status % 600) + 600) % 600
+		if status < 100 {
+			status += 100
+		}
+
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("Accept", accept)
+		req.Header.Set("X-Request-Id", "fuzz-req")
+		rr := httptest.NewRecorder()
+
+		Error(rr, req, status, code, message, map[string]any{"seed": "fuzz"})
+
+		if rr.Code != status {
+			t.Fatalf("status mismatch: got=%d want=%d", rr.Code, status)
+		}
+
+		ct := rr.Header().Get("Content-Type")
+		if ct != "application/json" && ct != "application/problem+json" {
+			t.Fatalf("unexpected content-type: %q", ct)
+		}
+
+		var body map[string]any
+		if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+			t.Fatalf("invalid json body: %v, raw=%q", err, rr.Body.String())
+		}
+
+		if ct == "application/problem+json" {
+			if got := int(body["status"].(float64)); got != status {
+				t.Fatalf("problem status mismatch: got=%d want=%d", got, status)
+			}
+			gotCode, ok := body["code"].(string)
+			if !ok {
+				t.Fatalf("problem code must be string: %v", body["code"])
+			}
+			if codeIsValidUTF8 && gotCode != code {
+				t.Fatalf("problem code mismatch: got=%v want=%v", gotCode, code)
+			}
+			if _, ok := body["request_id"]; !ok {
+				t.Fatal("problem payload missing request_id")
+			}
+			if got, ok := body["instance"].(string); !ok || got != path {
+				t.Fatalf("problem instance mismatch: got=%v want=%v", got, path)
+			}
+			return
+		}
+
+		if got, ok := body["success"].(bool); !ok || got {
+			t.Fatalf("envelope success must be false, got=%v", body["success"])
+		}
+		errObj, ok := body["error"].(map[string]any)
+		if !ok {
+			t.Fatalf("missing error object in envelope: %v", body)
+		}
+		gotCode, ok := errObj["code"].(string)
+		if !ok {
+			t.Fatalf("envelope code must be string: %v", errObj["code"])
+		}
+		if codeIsValidUTF8 && gotCode != code {
+			t.Fatalf("envelope code mismatch: got=%v want=%v", gotCode, code)
+		}
+		gotMessage, ok := errObj["message"].(string)
+		if !ok {
+			t.Fatalf("envelope message must be string: %v", errObj["message"])
+		}
+		if msgIsValidUTF8 && gotMessage != message {
+			t.Fatalf("envelope message mismatch: got=%v want=%v", gotMessage, message)
+		}
+		if _, ok := body["meta"]; !ok {
+			t.Fatalf("envelope missing meta: %s", fmt.Sprintf("%v", body))
+		}
+	})
 }

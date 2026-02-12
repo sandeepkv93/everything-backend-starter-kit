@@ -7,8 +7,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - Total test files: 85
 - Unit test files: 66
 - Integration test files: 19
-- Total test functions: 261
-- Unit test functions: 212
+- Total test functions: 265
+- Unit test functions: 216
 - Integration test functions: 49
 
 ## Unit Tests
@@ -52,7 +52,7 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/http/handler/user_handler_test.go`
   - `TestUserHandlerMeErrorMapping`, `TestUserHandlerSessionsResolveFallbackAndErrors`, `TestUserHandlerRevokeSessionMatrix`, `TestUserHandlerRevokeOtherSessionsMatrix`, `TestAuthUserIDAndClaimsParseError`, `TestSessionViewJSONShapeSmoke`
 - `internal/http/response/response_test.go`
-  - `TestError_DefaultEnvelopeWhenProblemNotRequested`, `TestError_ProblemDetailsWhenRequested`, `TestError_ContentNegotiationVariants`, `TestError_StatusTypeCodeConsistencyForKeyStatuses`
+  - `TestError_DefaultEnvelopeWhenProblemNotRequested`, `TestError_ProblemDetailsWhenRequested`, `TestError_ContentNegotiationVariants`, `TestError_StatusTypeCodeConsistencyForKeyStatuses`, `FuzzErrorContentNegotiationAndEnvelope`
 - `internal/http/router/router_test.go`
   - `TestRouterHealthReadyNilAndUnreadyBranches`, `TestRouterHealthLiveAlwaysOKWithDefaultLimiter`, `TestRouterFallbackGlobalRateLimiterWhenCustomNil`, `TestRouterRoutePolicyOverridesPerNamedPolicy`, `TestRouterCSRFScopeOnSensitiveRoutes`
 - `internal/app/app_test.go`
@@ -88,13 +88,13 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/repository/verification_token_repository_test.go`
   - `TestVerificationTokenRepositoryInvalidateFindConsume`, `TestVerificationTokenRepositoryConsumeIdempotencyAndConcurrency`
 - `internal/security/jwt_test.go`
-  - `TestJWTAccessAndRefreshParsing`
+  - `TestJWTAccessAndRefreshParsing`, `FuzzParseAccessTokenRobustness`, `FuzzParseRefreshTokenRobustness`
 - `internal/security/cookie_test.go`
   - `TestNewCookieManagerSameSiteMapping`, `TestCookieManagerSetTokenCookiesFlagsAndPaths`, `TestCookieManagerClearTokenCookies`, `TestGetCookie`
 - `internal/security/password_test.go`
   - `TestHashAndVerifyPassword`
 - `internal/security/state_test.go`
-  - `TestStateSignAndVerify`
+  - `TestStateSignAndVerify`, `FuzzVerifySignedStateRobustness`
 - `internal/service/admin_list_cache_test.go`
   - `TestInMemoryAdminListCacheStoreExpiry`, `TestNoopAdminListCacheStoreAlwaysMisses`, `TestInMemoryAdminListCacheStoreGetSetInvalidate`
 - `internal/service/admin_list_cache_redis_test.go`
