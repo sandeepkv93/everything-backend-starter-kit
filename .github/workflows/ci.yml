@@ -47,6 +47,9 @@ jobs:
       - name: Validate external secrets overlay
         run: bash scripts/ci/run_k8s_external_secrets_validate.sh
 
+      - name: Validate secret store overlays
+        run: bash scripts/ci/run_k8s_secret_stores_validate.sh
+
   fuzz-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20

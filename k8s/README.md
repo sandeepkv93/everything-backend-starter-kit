@@ -113,6 +113,15 @@ task k8s:validate-external-secrets
 kubectl apply -k k8s/overlays/secrets/external-secrets
 ```
 
+ClusterSecretStore templates (apply exactly one provider overlay per cluster):
+
+```bash
+task k8s:validate-secret-stores
+task k8s:apply-secret-store-aws
+# or
+task k8s:apply-secret-store-vault
+```
+
 Encrypted secret path (recommended):
 
 ```bash
