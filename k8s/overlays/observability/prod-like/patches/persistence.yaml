@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+spec:
+  template:
+    spec:
+      containers:
+        - name: tempo
+          volumeMounts:
+            - name: tempo-data
+              mountPath: /tmp/tempo
+      volumes:
+        - name: tempo-data
+          persistentVolumeClaim:
+            claimName: tempo-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+spec:
+  template:
+    spec:
+      containers:
+        - name: loki
+          volumeMounts:
+            - name: loki-data
+              mountPath: /loki
+      volumes:
+        - name: loki-data
+          persistentVolumeClaim:
+            claimName: loki-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mimir
+spec:
+  template:
+    spec:
+      containers:
+        - name: mimir
+          volumeMounts:
+            - name: mimir-data
+              mountPath: /tmp/mimir
+      volumes:
+        - name: mimir-data
+          persistentVolumeClaim:
+            claimName: mimir-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-data

@@ -32,6 +32,12 @@ k8s/
     ingress/
   overlays/
     development/
+    observability-base/
+    observability/
+      dev/
+      ci/
+      prod-like/
+      prod-like-ha/
   scripts/
     kind-setup.sh
     setup-secrets.sh
@@ -136,9 +142,19 @@ Observability overlay deploy:
 
 ```bash
 task k8s:deploy-observability
+task k8s:deploy-observability-dev
+task k8s:deploy-observability-ci
+task k8s:deploy-observability-prod-like
+task k8s:deploy-observability-prod-like-ha
 task k8s:obs-status
 task k8s:port-forward-grafana
 ```
+
+Observability profile notes:
+- `observability` (default) and `observability-dev`: single-replica local profile.
+- `observability-ci`: reduced resources for CI-like environments.
+- `observability-prod-like`: PVC-backed storage + retention/resource tuning.
+- `observability-prod-like-ha`: optional HA knobs for stateless components.
 
 Telemetry correlation validation:
 
@@ -175,7 +191,7 @@ task k8s:cluster-delete
 ## Notes
 
 - `AUTH_GOOGLE_ENABLED` is disabled in this Phase 1 baseline.
-- Observability components are intentionally out of this baseline and will be added in a later phase.
+- Observability components are optional overlays and not part of default `k8s:setup-full`.
 - Ingress is enabled in base (`secure-observable.local`, `ingressClassName: nginx`).
 - One-command local setup is available:
 

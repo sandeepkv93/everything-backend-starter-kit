@@ -25,5 +25,8 @@ schema_config:
         prefix: index_
         period: 24h
 
+limits_config:
+  retention_period: 168h
+
 analytics:
   reporting_enabled: false

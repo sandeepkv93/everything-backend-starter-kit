@@ -59,6 +59,22 @@ tasks:
     cmds:
       - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability
 
+  k8s:deploy-observability-dev:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability-dev
+
+  k8s:deploy-observability-ci:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability-ci
+
+  k8s:deploy-observability-prod-like:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability-prod-like
+
+  k8s:deploy-observability-prod-like-ha:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability-prod-like-ha
+
   k8s:rollout:
     cmds:
       - kubectl -n {{.K8S_NAMESPACE}} rollout status statefulset/postgres

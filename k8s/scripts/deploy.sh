@@ -23,6 +23,34 @@ resolve_target() {
         echo ""
       fi
       ;;
+    observability-dev)
+      if [[ -d "k8s/overlays/observability/dev" ]]; then
+        echo "k8s/overlays/observability/dev"
+      else
+        echo ""
+      fi
+      ;;
+    observability-ci)
+      if [[ -d "k8s/overlays/observability/ci" ]]; then
+        echo "k8s/overlays/observability/ci"
+      else
+        echo ""
+      fi
+      ;;
+    observability-prod-like)
+      if [[ -d "k8s/overlays/observability/prod-like" ]]; then
+        echo "k8s/overlays/observability/prod-like"
+      else
+        echo ""
+      fi
+      ;;
+    observability-prod-like-ha)
+      if [[ -d "k8s/overlays/observability/prod-like-ha" ]]; then
+        echo "k8s/overlays/observability/prod-like-ha"
+      else
+        echo ""
+      fi
+      ;;
     *)
       echo ""
       ;;
@@ -32,7 +60,7 @@ resolve_target() {
 TARGET="$(resolve_target)"
 if [[ -z "${TARGET}" ]]; then
   echo "Unknown or unavailable profile '${PROFILE}'" >&2
-  echo "Usage: $0 [base|development|observability]" >&2
+  echo "Usage: $0 [base|development|observability|observability-dev|observability-ci|observability-prod-like|observability-prod-like-ha]" >&2
   exit 1
 fi
 
@@ -44,7 +72,7 @@ if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" ==
   kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
 fi
 
-if [[ "${PROFILE}" == "observability" ]]; then
+if [[ "${PROFILE}" == observability* ]]; then
   kubectl -n "${NAMESPACE}" rollout restart deployment/secure-observable-api
   kubectl -n "${NAMESPACE}" rollout status statefulset/postgres --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
