@@ -4,11 +4,11 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 
 ## Summary
 
-- Total test files: 83
-- Unit test files: 64
+- Total test files: 85
+- Unit test files: 66
 - Integration test files: 19
-- Total test functions: 251
-- Unit test functions: 202
+- Total test functions: 261
+- Unit test functions: 212
 - Integration test functions: 49
 
 ## Unit Tests
@@ -125,8 +125,12 @@ Generated from repository test sources (`*_test.go`) and test function declarati
   - `TestRBACPermissionEvaluation`
 - `internal/service/redis_test_helpers_test.go`
   - Helper-only test file (shared miniredis client setup), no `Test*` declarations
+- `internal/service/session_service_test.go`
+  - `TestSessionServiceListActiveSessions`, `TestSessionServiceListActiveSessionsRepoError`, `TestSessionServiceResolveCurrentSessionID`, `TestSessionServiceRevokeSession`, `TestSessionServiceRevokeOtherSessions`
 - `internal/service/token_service_test.go`
   - `TestTokenRotateSuccessPreservesFamily`, `TestTokenRotateReuseRevokesFamily`, `TestTokenRotateInvalidDoesNotRevokeActiveSessions`, `TestTokenRotateBackfillsLegacyLineage`
+- `internal/service/user_service_test.go`
+  - `TestUserServiceGetByID`, `TestUserServiceListDelegatesToRepo`, `TestUserServiceListError`, `TestUserServiceSetRolesDelegatesAndPropagatesErrors`, `TestUserServiceAddRoleDelegatesAndPropagatesErrors`
 - `internal/tools/common/env_test.go`
   - `TestLoadEnvFileMissingIsNoop`, `TestLoadEnvFileLoadsAndPreservesExisting`, `TestLoadEnvFileOpenError`
 - `internal/tools/common/output_test.go`

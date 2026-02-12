@@ -5,16 +5,16 @@
 This gap analysis covers the full repository (all `internal/**`, `cmd/**`, and `test/integration/**`) using:
 
 - Source inventory (`*.go` excluding generated tests)
-- Test inventory from `docs/test_catalog.md`
+- Test inventory from `docs/test-catalog.md`
 - Route map from `internal/http/router/router.go`
 - CI/task test commands from `scripts/ci/run_all.sh` and `taskfiles/go.yaml`
 
 Current baseline from catalog:
 
-- Test files: 83
-- Unit test files: 64
+- Test files: 85
+- Unit test files: 66
 - Integration test files: 19
-- Declared test functions: 251
+- Declared test functions: 261
 
 ## High-Level Coverage Posture
 
@@ -32,10 +32,11 @@ Strong coverage already exists for:
 - Security/middleware adjunct branches covering cookie semantics, bypass policy edges, request logging fields, and Redis limiter adapter behavior
 - Database/startup/tooling paths covering postgres open failure, migration/seed error branches, app bootstrap wiring, and CLI helper command validation
 - Domain-model-level contract checks for tags, sensitive-field JSON exclusions, index/composite key declarations, and model defaults
+- Service-layer control flow for `SessionService` and `UserService` (fallbacks, token/cookie resolution, role/permission derivation, and delegation error paths)
 
 Most meaningful gaps are concentrated in:
 
-- Service business logic (`SessionService`, `UserService`)
+- Non-functional depth (fuzzing, benchmark baselines, and CI strategy for environment-sensitive tests)
 
 ## Cross-Cutting Quality Gaps
 
@@ -46,12 +47,9 @@ Most meaningful gaps are concentrated in:
 
 ## Recommended Implementation Sequence
 
-1. P2: Focused `SessionService`/`UserService` unit test expansion.
-
-## Concrete New Test Files to Add
-
-- `internal/service/session_service_test.go`
-- `internal/service/user_service_test.go`
+1. Introduce targeted fuzz tests for high-risk parsers/middleware fingerprint logic.
+2. Add benchmark baselines for hot paths (`auth`, `RBAC resolver`, idempotency middleware).
+3. Decide and document CI policy for docker-dependent race tests.
 
 ## Assumptions and Unknowns
 
