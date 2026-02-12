@@ -7,8 +7,8 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - Total test files: 85
 - Unit test files: 66
 - Integration test files: 19
-- Total test functions: 265
-- Unit test functions: 216
+- Total test functions: 269
+- Unit test functions: 220
 - Integration test functions: 49
 
 ## Unit Tests
@@ -32,13 +32,13 @@ Generated from repository test sources (`*_test.go`) and test function declarati
 - `internal/http/middleware/auth_middleware_test.go`
   - `TestAuthMiddlewareMissingTokenReturnsUnauthorized`, `TestAuthMiddlewareValidBearerTokenPasses`
 - `internal/http/middleware/bypass_policy_test.go`
-  - `TestNewRequestBypassEvaluatorIgnoresInvalidCIDRsAndCanReturnNil`, `TestRequestBypassEvaluatorMethodPathAndNilRequest`, `TestRequestBypassEvaluatorTrustedSubjectNormalizationAndFallback`
+  - `TestNewRequestBypassEvaluatorIgnoresInvalidCIDRsAndCanReturnNil`, `TestRequestBypassEvaluatorMethodPathAndNilRequest`, `TestRequestBypassEvaluatorTrustedSubjectNormalizationAndFallback`, `FuzzRequestBypassEvaluatorRobustness`
 - `internal/http/middleware/idempotency_middleware_test.go`
-  - `TestIdempotencyMiddlewareRejectsMissingAndTooLongKey`, `TestIdempotencyMiddlewareRejectsUnreadableBody`, `TestIdempotencyMiddlewareBeginErrorReturnsInternal`, `TestIdempotencyMiddlewareBeginStateBranches`, `TestIdempotencyMiddlewareCompleteBehavior`, `TestIdempotencyFingerprintUsesRoutePatternAndActorIdentity`
+  - `TestIdempotencyMiddlewareRejectsMissingAndTooLongKey`, `TestIdempotencyMiddlewareRejectsUnreadableBody`, `TestIdempotencyMiddlewareBeginErrorReturnsInternal`, `TestIdempotencyMiddlewareBeginStateBranches`, `TestIdempotencyMiddlewareCompleteBehavior`, `TestIdempotencyFingerprintUsesRoutePatternAndActorIdentity`, `FuzzIdempotencyMiddlewareKeyAndBodyRobustness`
 - `internal/http/middleware/rate_limit_middleware_test.go`
   - `TestDistributedRateLimiterAllowedSetsRateLimitHeaders`, `TestSubjectOrIPKeyFuncUsesSubjectWhenAccessTokenValid`, `TestSubjectOrIPKeyFuncFallsBackToIPWhenTokenInvalid`, `TestRateLimiterWithPolicyBurstThenSustained`, `TestRequestBypassEvaluatorProbePath`, `TestRequestBypassEvaluatorTrustedCIDR`, `TestRequestBypassEvaluatorTrustedSubject`, `TestRateLimiterBypassSkipsLimiter`, `TestRateLimitKeyType`, `TestDistributedRateLimiterFailOpenOnBackendError`, `TestDistributedRateLimiterFailClosedOnBackendError`, `TestDistributedRateLimiterDeniedSetsRetryAfter`
 - `internal/http/middleware/rate_limit_redis_test.go`
-  - `TestRedisFixedWindowLimiterAllowDenyAndFallbackKey`, `TestRedisFixedWindowLimiterBackendAndNilClientErrors`, `TestParseRedisInt64Branches`
+  - `TestRedisFixedWindowLimiterAllowDenyAndFallbackKey`, `TestRedisFixedWindowLimiterBackendAndNilClientErrors`, `TestParseRedisInt64Branches`, `FuzzParseRedisInt64Robustness`, `FuzzRedisFixedWindowLimiterAllowKeyFallback`
 - `internal/http/middleware/rbac_middleware_test.go`
   - `TestRequirePermissionDenied`, `TestRequirePermissionResolverError`, `TestRequirePermissionAllowed`
 - `internal/http/middleware/request_logging_middleware_test.go`

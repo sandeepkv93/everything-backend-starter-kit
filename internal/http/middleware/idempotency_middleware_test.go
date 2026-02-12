@@ -1,16 +1,20 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
 	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
 )
@@ -307,4 +311,135 @@ func TestIdempotencyFingerprintUsesRoutePatternAndActorIdentity(t *testing.T) {
 			t.Fatalf("expected xff-derived ip actor, got %q", got)
 		}
 	})
+}
+
+func FuzzIdempotencyMiddlewareKeyAndBodyRobustness(f *testing.F) {
+	f.Add(true, "idem-key-1", "/api/v1/auth/register", "POST", "register", []byte(`{"email":"u@example.com"}`), "", "", "", false)
+	f.Add(false, "", "/api/v1/auth/register", "POST", "register", []byte(`{}`), "", "", "", false)
+	f.Add(true, strings.Repeat("k", 129), "/api/v1/auth/register", "POST", "register", []byte(`{}`), "", "", "", false)
+	f.Add(true, "idem-key-unicode-🔥", "/api/v1/orders/42", "PUT", "orders", []byte(strings.Repeat("a", 512)), "/api/v1/orders/{id}", "42", "198.51.100.10, 203.0.113.1", true)
+
+	f.Fuzz(func(t *testing.T, includeKey bool, key, path, method, scope string, body []byte, routePattern, subject, xff string, withClaims bool) {
+		if len(key) > 512 {
+			key = key[:512]
+		}
+		if len(path) > 1024 {
+			path = path[:1024]
+		}
+		if len(method) > 32 {
+			method = method[:32]
+		}
+		if len(scope) > 128 {
+			scope = scope[:128]
+		}
+		if len(routePattern) > 256 {
+			routePattern = routePattern[:256]
+		}
+		if len(subject) > 128 {
+			subject = subject[:128]
+		}
+		if len(xff) > 256 {
+			xff = xff[:256]
+		}
+		if len(body) > 4096 {
+			body = body[:4096]
+		}
+
+		if scope == "" {
+			scope = "fuzz_scope"
+		}
+		if method == "" {
+			method = http.MethodPost
+		}
+		method = sanitizeFuzzMethod(method)
+		path = sanitizeFuzzPath(path)
+
+		store := &fakeIdempotencyStore{beginResult: service.IdempotencyBeginResult{State: service.IdempotencyStateNew}}
+		mw := NewIdempotencyMiddleware(store, time.Minute)
+		handler := mw.Middleware(scope)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotBody, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("downstream read body: %v", err)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"size":` + strconv.Itoa(len(gotBody)) + `}`))
+		}))
+
+		req := httptest.NewRequest(method, path, bytes.NewReader(body))
+		req.RemoteAddr = "203.0.113.77:8080"
+		if includeKey {
+			req.Header.Set(idempotencyHeader, key)
+		}
+		if xff != "" {
+			req.Header.Set("X-Forwarded-For", xff)
+		}
+		if routePattern != "" {
+			routeCtx := chi.NewRouteContext()
+			routeCtx.RoutePatterns = []string{routePattern}
+			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeCtx))
+		}
+		if withClaims {
+			req = req.WithContext(context.WithValue(req.Context(), ClaimsContextKey, &security.Claims{
+				RegisteredClaims: jwt.RegisteredClaims{Subject: subject},
+			}))
+		}
+
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		trimmed := strings.TrimSpace(key)
+		if !includeKey || trimmed == "" || len(trimmed) > 128 {
+			if rr.Code != http.StatusBadRequest {
+				t.Fatalf("expected 400 for invalid/missing key, got %d", rr.Code)
+			}
+			if len(store.beginCalls) != 0 {
+				t.Fatalf("expected no begin calls for invalid key path, got %d", len(store.beginCalls))
+			}
+			return
+		}
+
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("expected 201 for valid key flow, got %d", rr.Code)
+		}
+		if len(store.beginCalls) != 1 {
+			t.Fatalf("expected one begin call, got %d", len(store.beginCalls))
+		}
+		if len(store.completeCalls) != 1 {
+			t.Fatalf("expected one complete call, got %d", len(store.completeCalls))
+		}
+		if store.beginCalls[0].fingerprint == "" || store.completeCalls[0].fingerprint == "" {
+			t.Fatal("expected non-empty fingerprint")
+		}
+	})
+}
+
+func sanitizeFuzzPath(path string) string {
+	path = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f || r == ' ' || r == '\t' || r == '\n' || r == '\r' {
+			return '_'
+		}
+		return r
+	}, path)
+	path = strings.ReplaceAll(path, "%", "_")
+	path = strings.ReplaceAll(path, "?", "_")
+	path = strings.ReplaceAll(path, "#", "_")
+	if path == "" || !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	// Ensure path is parsable by httptest.NewRequest URL handling.
+	if _, err := url.Parse(path); err != nil {
+		return "/fuzz"
+	}
+	return path
+}
+
+func sanitizeFuzzMethod(method string) string {
+	method = strings.ToUpper(strings.TrimSpace(method))
+	switch method {
+	case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead, http.MethodOptions:
+		return method
+	default:
+		return http.MethodPost
+	}
 }

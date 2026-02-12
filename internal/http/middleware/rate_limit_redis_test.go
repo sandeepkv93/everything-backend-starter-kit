@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -79,4 +80,133 @@ func TestParseRedisInt64Branches(t *testing.T) {
 	if _, err := parseRedisInt64(errors.New("x")); err == nil {
 		t.Fatal("expected unexpected type error")
 	}
+}
+
+func FuzzParseRedisInt64Robustness(f *testing.F) {
+	f.Add(uint8(0), int64(42), uint64(42), "42")
+	f.Add(uint8(1), int64(-1), uint64(math.MaxUint64), "bad")
+	f.Add(uint8(2), int64(0), uint64(0), "")
+
+	f.Fuzz(func(t *testing.T, kind uint8, si int64, ui uint64, s string) {
+		if len(s) > 256 {
+			s = s[:256]
+		}
+		var (
+			v       any
+			wantErr bool
+			wantVal int64
+		)
+		switch kind % 7 {
+		case 0:
+			v = si
+			wantVal = si
+		case 1:
+			v = int(si)
+			wantVal = int64(int(si))
+		case 2:
+			v = ui
+			if ui > math.MaxInt64 {
+				wantErr = true
+			} else {
+				wantVal = int64(ui)
+			}
+		case 3:
+			v = s
+			wantErr = true
+		case 4:
+			v = errors.New(s)
+			wantErr = true
+		case 5:
+			v = nil
+			wantErr = true
+		default:
+			v = struct{ X string }{X: s}
+			wantErr = true
+		}
+
+		got, err := parseRedisInt64(v)
+		if wantErr {
+			if err == nil {
+				t.Fatalf("expected error for type %T value %v, got value=%d", v, v, got)
+			}
+			return
+		}
+		if err != nil {
+			t.Fatalf("unexpected error for type %T value %v: %v", v, v, err)
+		}
+		if got != wantVal {
+			t.Fatalf("value mismatch: got=%d want=%d (type=%T value=%v)", got, wantVal, v, v)
+		}
+	})
+}
+
+func FuzzRedisFixedWindowLimiterAllowKeyFallback(f *testing.F) {
+	f.Add("", uint16(1), uint16(1), uint16(1), uint16(1000))
+	f.Add("unknown", uint16(2), uint16(2), uint16(3), uint16(500))
+	f.Add("🔥-key", uint16(5), uint16(3), uint16(10), uint16(1200))
+
+	f.Fuzz(func(t *testing.T, key string, sustainedLimit, burstCapacity, refillPerSec, windowMS uint16) {
+		if len(key) > 256 {
+			key = key[:256]
+		}
+		key = strings.TrimSpace(key)
+
+		m := miniredis.RunT(t)
+		client := redis.NewClient(&redis.Options{Addr: m.Addr()})
+		t.Cleanup(func() {
+			_ = client.Close()
+			m.Close()
+		})
+
+		limiter := NewRedisFixedWindowLimiter(client, "fuzz_rl")
+		policy := RateLimitPolicy{
+			SustainedLimit:    int(max(int64(sustainedLimit%20), 1)),
+			SustainedWindow:   time.Duration(max(int64(windowMS), 1)) * time.Millisecond,
+			BurstCapacity:     int(max(int64(burstCapacity%20), 1)),
+			BurstRefillPerSec: max(float64(refillPerSec), 1),
+		}
+
+		ctx := context.Background()
+		d1, err := limiter.Allow(ctx, key, policy)
+		if err != nil {
+			t.Fatalf("first allow failed: %v", err)
+		}
+		if d1.RetryAfter <= 0 {
+			t.Fatalf("retry-after must be positive: %+v", d1)
+		}
+		if d1.Remaining < 0 {
+			t.Fatalf("remaining must be non-negative: %+v", d1)
+		}
+
+		d2, err := limiter.Allow(ctx, key, policy)
+		if err != nil {
+			t.Fatalf("second allow failed: %v", err)
+		}
+		if d2.RetryAfter <= 0 {
+			t.Fatalf("retry-after must be positive on second decision: %+v", d2)
+		}
+		if d2.Remaining < 0 {
+			t.Fatalf("remaining must be non-negative on second decision: %+v", d2)
+		}
+
+		if key == "" {
+			if err := client.FlushAll(ctx).Err(); err != nil {
+				t.Fatalf("flush before empty-key check: %v", err)
+			}
+			dEmpty, err := limiter.Allow(ctx, "", policy)
+			if err != nil {
+				t.Fatalf("empty key allow failed: %v", err)
+			}
+			if err := client.FlushAll(ctx).Err(); err != nil {
+				t.Fatalf("flush before unknown-key check: %v", err)
+			}
+			dUnknown, err := limiter.Allow(ctx, "unknown", policy)
+			if err != nil {
+				t.Fatalf("unknown key allow failed: %v", err)
+			}
+			if dEmpty.Allowed != dUnknown.Allowed || dEmpty.Remaining != dUnknown.Remaining {
+				t.Fatalf("fallback mismatch empty vs unknown: empty=%+v unknown=%+v", dEmpty, dUnknown)
+			}
+		}
+	})
 }

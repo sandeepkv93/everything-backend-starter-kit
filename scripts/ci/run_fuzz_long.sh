@@ -12,5 +12,9 @@ go test ./internal/http/response -run=^$ -fuzz=FuzzErrorContentNegotiationAndEnv
 go test ./internal/security -run=^$ -fuzz=FuzzParseAccessTokenRobustness -fuzztime="${FUZZ_LONG_TIME}"
 go test ./internal/security -run=^$ -fuzz=FuzzParseRefreshTokenRobustness -fuzztime="${FUZZ_LONG_TIME}"
 go test ./internal/security -run=^$ -fuzz=FuzzVerifySignedStateRobustness -fuzztime="${FUZZ_LONG_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzIdempotencyMiddlewareKeyAndBodyRobustness -fuzztime="${FUZZ_LONG_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzRequestBypassEvaluatorRobustness -fuzztime="${FUZZ_LONG_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzParseRedisInt64Robustness -fuzztime="${FUZZ_LONG_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzRedisFixedWindowLimiterAllowKeyFallback -fuzztime="${FUZZ_LONG_TIME}"
 
 echo "ci: long fuzz run passed"

@@ -12,5 +12,9 @@ go test ./internal/http/response -run=^$ -fuzz=FuzzErrorContentNegotiationAndEnv
 go test ./internal/security -run=^$ -fuzz=FuzzParseAccessTokenRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
 go test ./internal/security -run=^$ -fuzz=FuzzParseRefreshTokenRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
 go test ./internal/security -run=^$ -fuzz=FuzzVerifySignedStateRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzIdempotencyMiddlewareKeyAndBodyRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzRequestBypassEvaluatorRobustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzParseRedisInt64Robustness -fuzztime="${FUZZ_SMOKE_TIME}"
+go test ./internal/http/middleware -run=^$ -fuzz=FuzzRedisFixedWindowLimiterAllowKeyFallback -fuzztime="${FUZZ_SMOKE_TIME}"
 
 echo "ci: fuzz smoke passed"
