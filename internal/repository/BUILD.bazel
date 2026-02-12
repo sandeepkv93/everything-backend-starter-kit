@@ -35,6 +35,7 @@ go_test(
         "user_repository_test.go",
         "verification_token_repository_test.go",
     ],
+    data = glob(["testdata/**"]),
     embed = [":repository"],
     deps = [
         "//internal/domain",
