@@ -42,7 +42,7 @@ For architecture and flow diagrams, see `docs/diagrams.md`.
 
 - Go `1.24.13`
 - [Task](https://taskfile.dev/)
-- [Bazelisk](https://github.com/bazelbuild/bazelisk)
+- [Bazelisk](https://github.com/bazelbuild/bazelisk) (uses Bazel `9.0.0` from `.bazelversion`)
 - Docker and Docker Compose (for local stack)
 
 ## Taskfile Organization
@@ -513,6 +513,7 @@ Generation checks:
 Pinned versions:
 
 - Go toolchain pinned to `1.24.13` in `go.mod` and Bazel module setup.
+- Bazel version pinned to `9.0.0` in `.bazelversion` (used by Bazelisk locally and in CI).
 
 ## CI Pipeline
 

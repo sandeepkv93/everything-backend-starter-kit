@@ -83,7 +83,7 @@ flowchart LR
 
 - [Go `1.24.13`](https://go.dev/dl/)
 - [Task](https://taskfile.dev/)
-- [Bazelisk](https://github.com/bazelbuild/bazelisk)
+- [Bazelisk](https://github.com/bazelbuild/bazelisk) (uses Bazel `9.0.0` from `.bazelversion`)
 - [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
 
 ### Clone the repo and cd into it
