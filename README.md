@@ -81,10 +81,10 @@ flowchart LR
 
 ### Prerequisites:
 
-- Go `1.24.13`
+- [Go `1.24.13`](https://go.dev/dl/)
 - [Task](https://taskfile.dev/)
 - [Bazelisk](https://github.com/bazelbuild/bazelisk)
-- Docker + Docker Compose
+- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
 
 ### Clone the repo and cd into it
 
