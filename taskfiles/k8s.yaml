@@ -206,6 +206,10 @@ tasks:
     cmds:
       - bash scripts/ci/run_k8s_rollout_precheck_script_check.sh
 
+  k8s:validate-rollout-runtime-script:
+    cmds:
+      - bash scripts/ci/run_k8s_rollout_runtime_script_check.sh
+
   k8s:validate-availability-profiles:
     cmds:
       - bash scripts/ci/run_k8s_availability_validate.sh

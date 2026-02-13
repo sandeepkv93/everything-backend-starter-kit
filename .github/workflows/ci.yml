@@ -56,6 +56,9 @@ jobs:
       - name: Validate rollout precheck script
         run: bash scripts/ci/run_k8s_rollout_precheck_script_check.sh
 
+      - name: Validate rollout runtime kind script
+        run: bash scripts/ci/run_k8s_rollout_runtime_script_check.sh
+
       - name: Validate availability profiles policy
         run: bash scripts/ci/run_k8s_availability_validate.sh
 

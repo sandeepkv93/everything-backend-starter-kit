@@ -288,4 +288,5 @@ This order gets reliable Kubernetes parity quickly, then layers observability co
   - ✅ added rollout overlay CI policy validation gate (`run_k8s_rollout_validate.sh`).
   - ✅ finalized controller lifecycle ownership (Platform/SRE) and promotion authority boundaries in `docs/k8s-rollout-governance.md`.
   - ✅ implemented enforceable SLO-linked promotion gates (`k8s/scripts/rollout-precheck.sh`) with measurable rollback triggers and break-glass override policy.
-  - ✅ added CI script sanity gate for rollout precheck (`run_k8s_rollout_precheck_script_check.sh`).
+  - ✅ added CI script sanity gates for rollout precheck and runtime Kind orchestration (`run_k8s_rollout_precheck_script_check.sh`, `run_k8s_rollout_runtime_script_check.sh`).
+  - ✅ added runtime execution in `k8s-kind-smoke`: deploy rollout+observability on Kind, generate traffic, run rollout precheck, and upload SLO evidence artifacts.

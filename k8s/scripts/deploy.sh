@@ -97,7 +97,12 @@ kubectl apply -k "${TARGET}"
 if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" == "dev" || "${PROFILE}" == "prod-like" || "${PROFILE}" == "staging" || "${PROFILE}" == "production" || "${PROFILE}" == "rollout-bluegreen" ]]; then
   kubectl -n "${NAMESPACE}" rollout status statefulset/postgres --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
-  kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
+
+  if [[ "${PROFILE}" == "rollout-bluegreen" ]]; then
+    kubectl -n "${NAMESPACE}" rollout status rollout/secure-observable-api --timeout=240s
+  else
+    kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
+  fi
 fi
 
 if [[ "${PROFILE}" == observability* ]]; then

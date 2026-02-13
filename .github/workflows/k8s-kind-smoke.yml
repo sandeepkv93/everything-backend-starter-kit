@@ -13,7 +13,7 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +31,15 @@ jobs:
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
           kind version
+
+      - name: Install kubectl argo rollouts plugin
+        env:
+          ARGO_ROLLOUTS_VERSION: v1.7.2
+        run: |
+          curl -sSL "https://github.com/argoproj/argo-rollouts/releases/download/${ARGO_ROLLOUTS_VERSION}/kubectl-argo-rollouts-linux-amd64" -o /tmp/kubectl-argo-rollouts
+          chmod +x /tmp/kubectl-argo-rollouts
+          sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
+          kubectl argo rollouts version --client
 
       - name: Prepare local k8s secrets env
         run: |
@@ -53,11 +62,27 @@ jobs:
       - name: Health checks
         run: task k8s:health-check
 
+      - name: Runtime rollout precheck with traffic + SLO evidence
+        env:
+          EVIDENCE_DIR: .artifacts/k8s-rollout-evidence
+          ROLLOUT_ENV: staging
+        run: bash scripts/ci/run_k8s_rollout_runtime_kind.sh
+
+      - name: Upload rollout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-rollout-evidence
+          path: .artifacts/k8s-rollout-evidence
+          if-no-files-found: warn
+
       - name: Cluster status on failure
         if: failure()
         run: |
           task k8s:status || true
           task k8s:obs-status || true
+          kubectl -n secure-observable get rollout secure-observable-api -o yaml || true
+          kubectl -n argo-rollouts get deploy,pods || true
 
       - name: Cleanup
         if: always()
