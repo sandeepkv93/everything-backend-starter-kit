@@ -14,16 +14,184 @@
         "uid": "mimir"
       },
       "fieldConfig": {
-        "defaults": {},
+        "defaults": {
+          "unit": "short"
+        },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 6,
+        "w": 8,
         "x": 0,
         "y": 0
       },
       "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(http_server_active_requests{job=\"secure-observable-go-backend-starter-kit\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Requests",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Latency p95",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Latency p99",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"secure-observable-go-backend-starter-kit\",http_response_status_code=~\"2..\"}[5m]))",
+          "legendFormat": "2xx",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"secure-observable-go-backend-starter-kit\",http_response_status_code=~\"4..\"}[5m]))",
+          "legendFormat": "4xx",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"secure-observable-go-backend-starter-kit\",http_response_status_code=~\"5..\"}[5m]))",
+          "legendFormat": "5xx",
+          "refId": "C"
+        }
+      ],
+      "title": "HTTP Status Class Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "id": 5,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -52,46 +220,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 14
       },
-      "id": 2,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le))",
-          "legendFormat": "p95",
-          "refId": "A"
-        }
-      ],
-      "title": "Request Latency p95",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "mimir"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 9
-      },
-      "id": 3,
+      "id": 6,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -115,6 +249,210 @@
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 22
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_login_attempts_total{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Login Attempts",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 22
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_refresh_attempts_total{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Refresh Attempts",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 22
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_rate_limit_decisions_total{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (outcome)",
+          "legendFormat": "{{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Rate Limit Decisions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(repository_operations_total{job=\"secure-observable-go-backend-starter-kit\",outcome=\"error\"}[5m])) by (repo)",
+          "legendFormat": "{{repo}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Repository Errors by Repo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(health_check_results_total{job=\"secure-observable-go-backend-starter-kit\",outcome=\"unhealthy\"}[5m])) by (check)",
+          "legendFormat": "{{check}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Unhealthy Health Checks",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 38
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(redis_command_total{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Ops by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
+        "defaults": {
           "max": 1,
           "min": 0,
           "unit": "percentunit"
@@ -122,12 +460,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 9
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 38
       },
-      "id": 4,
+      "id": 13,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -158,12 +496,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 18
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 38
       },
-      "id": 5,
+      "id": 14,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -186,6 +524,46 @@
         "uid": "mimir"
       },
       "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 46
+      },
+      "id": 15,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "topk(5, sum(rate(redis_command_total{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (command))",
+          "legendFormat": "{{command}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Redis Commands",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "fieldConfig": {
         "defaults": {
           "max": 1,
           "min": 0,
@@ -194,12 +572,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 18
+        "y": 46
       },
-      "id": 6,
+      "id": 16,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -222,7 +600,8 @@
   "tags": [
     "otel",
     "api",
-    "redis"
+    "redis",
+    "auth"
   ],
   "templating": {
     "list": []
@@ -233,5 +612,5 @@
   },
   "title": "API Overview",
   "uid": "api-overview",
-  "version": 2
+  "version": 3
 }

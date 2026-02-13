@@ -20,8 +20,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 6,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -61,9 +61,9 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
+        "h": 6,
+        "w": 6,
+        "x": 6,
         "y": 0
       },
       "id": 2,
@@ -82,12 +82,94 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le, endpoint))",
           "legendFormat": "p95",
           "refId": "A"
         }
       ],
-      "title": "Auth Request p95 (Exemplar-enabled)",
+      "title": "Auth Request p95",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(count by (trace_id) (count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\" [1h])))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Trace IDs (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\" | message=\"Request completed\" [5m]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Trace-Linked Requests",
       "type": "stat"
     },
     {
@@ -100,12 +182,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 6
       },
-      "id": 3,
+      "id": 5,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -128,13 +210,54 @@
         "type": "loki",
         "uid": "loki"
       },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\" | level=\"error\" [5m]))",
+          "legendFormat": "error",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\" | level=\"warn\" [5m]))",
+          "legendFormat": "warn",
+          "queryType": "range",
+          "refId": "B"
+        }
+      ],
+      "title": "Trace-Correlated Error/Warn Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 22
       },
-      "id": 4,
+      "id": 7,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -160,7 +283,8 @@
   "tags": [
     "otel",
     "traces",
-    "correlation"
+    "correlation",
+    "tempo"
   ],
   "templating": {
     "list": []
@@ -171,5 +295,5 @@
   },
   "title": "Trace Overview",
   "uid": "trace-overview",
-  "version": 2
+  "version": 3
 }

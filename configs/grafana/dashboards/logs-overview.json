@@ -14,7 +14,7 @@
         "uid": "loki"
       },
       "gridPos": {
-        "h": 9,
+        "h": 10,
         "w": 24,
         "x": 0,
         "y": 0
@@ -35,7 +35,396 @@
           "refId": "A"
         }
       ],
-      "title": "Application Logs",
+      "title": "Application Logs Stream",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 10
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"error\" [1h]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Count (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 10
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"warn\" [1h]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Warning Count (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 10
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | message=\"Request completed\" [1h]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Requests (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 10
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(count by (trace_id) (count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\" [1h])))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Trace IDs (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"error\" [5m]))",
+          "legendFormat": "error",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"warn\" [5m]))",
+          "legendFormat": "warn",
+          "queryType": "range",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"info\" [5m]))",
+          "legendFormat": "info",
+          "queryType": "range",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"debug\" [5m]))",
+          "legendFormat": "debug",
+          "queryType": "range",
+          "refId": "D"
+        }
+      ],
+      "title": "Log Volume by Level",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 200 and status < 300 [5m]))",
+          "legendFormat": "2xx",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 400 and status < 500 [5m]))",
+          "legendFormat": "4xx",
+          "queryType": "range",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 500 and status < 600 [5m]))",
+          "legendFormat": "5xx",
+          "queryType": "range",
+          "refId": "C"
+        }
+      ],
+      "title": "HTTP Status Classes from Logs",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 8,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"warn\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Warning Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 9,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | message=\"Request completed\"",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Request Logs",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (level) (count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=~\"error|warn\" [5m]))",
+          "legendFormat": "{{level}}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Error/Warn Trends",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "id": 11,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} |= \"trace_id=\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Trace-Correlated Logs",
       "type": "logs"
     }
   ],
@@ -43,7 +432,8 @@
   "schemaVersion": 39,
   "tags": [
     "otel",
-    "logs"
+    "logs",
+    "loki"
   ],
   "templating": {
     "list": []
@@ -54,5 +444,5 @@
   },
   "title": "Logs Overview",
   "uid": "logs-overview",
-  "version": 1
+  "version": 2
 }

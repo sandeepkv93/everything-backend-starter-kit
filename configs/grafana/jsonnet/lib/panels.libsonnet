@@ -1,4 +1,12 @@
 {
+  target(refId, expr, legendFormat=null, queryType=null):
+    {
+      refId: refId,
+      expr: expr,
+    }
+    + (if legendFormat == null then {} else { legendFormat: legendFormat })
+    + (if queryType == null then {} else { queryType: queryType }),
+
   timeseries(
     id,
     title,
@@ -15,6 +23,35 @@
     max=null,
     queryType=null,
   ):
+    $.timeseriesTargets(
+      id,
+      title,
+      x,
+      y,
+      w,
+      h,
+      datasourceType,
+      datasourceUid,
+      [$.target('A', expr, legendFormat, queryType)],
+      unit,
+      min,
+      max,
+    ),
+
+  timeseriesTargets(
+    id,
+    title,
+    x,
+    y,
+    w,
+    h,
+    datasourceType,
+    datasourceUid,
+    targets,
+    unit=null,
+    min=null,
+    max=null,
+  ):
     {
       id: id,
       title: title,
@@ -30,14 +67,7 @@
           + (if max == null then {} else { max: max }),
         overrides: [],
       },
-      targets: [
-        {
-          refId: 'A',
-          expr: expr,
-        }
-        + (if legendFormat == null then {} else { legendFormat: legendFormat })
-        + (if queryType == null then {} else { queryType: queryType }),
-      ],
+      targets: targets,
     },
 
   stat(
@@ -72,14 +102,38 @@
           + (if unit == null then {} else { unit: unit }),
         overrides: [],
       },
-      targets: [
-        {
-          refId: 'A',
-          expr: expr,
-        }
-        + (if legendFormat == null then {} else { legendFormat: legendFormat })
-        + (if queryType == null then {} else { queryType: queryType }),
-      ],
+      targets: [$.target('A', expr, legendFormat, queryType)],
+    },
+
+  piechart(
+    id,
+    title,
+    x,
+    y,
+    w,
+    h,
+    datasourceType,
+    datasourceUid,
+    targets,
+    unit=null,
+  ):
+    {
+      id: id,
+      title: title,
+      type: 'piechart',
+      gridPos: { x: x, y: y, w: w, h: h },
+      datasource: { type: datasourceType, uid: datasourceUid },
+      options: {
+        legend: { displayMode: 'list', placement: 'right' },
+        pieType: 'pie',
+        reduceOptions: { calcs: ['lastNotNull'], fields: '', values: false },
+      },
+      fieldConfig: {
+        defaults: {}
+          + (if unit == null then {} else { unit: unit }),
+        overrides: [],
+      },
+      targets: targets,
     },
 
   logs(id, title, x, y, w, h, expr, queryType=null):
@@ -98,12 +152,6 @@
         showTime: true,
         sortOrder: 'Descending',
       },
-      targets: [
-        {
-          refId: 'A',
-          expr: expr,
-        }
-        + (if queryType == null then {} else { queryType: queryType }),
-      ],
+      targets: [$.target('A', expr, null, queryType)],
     },
 }

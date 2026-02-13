@@ -3,10 +3,19 @@ local panels = import '../lib/panels.libsonnet';
 local q = import '../lib/queries/traces.libsonnet';
 
 local panelList = [
-  panels.stat(1, 'Trace-Correlated Log Rate', 0, 0, 12, 8, 'loki', 'loki', q.traceCorrelatedLogRate, 'reqps', null, 'range'),
-  panels.stat(2, 'Auth Request p95 (Exemplar-enabled)', 12, 0, 12, 8, 'prometheus', 'mimir', q.authRequestP95, 's', 'p95'),
-  panels.timeseries(3, 'Trace-Correlated Events by Type', 0, 8, 24, 9, 'loki', 'loki', q.traceEventsByType, '{{event}}', null, null, null, 'range'),
-  panels.logs(4, 'Recent Trace-Correlated Logs', 0, 17, 24, 10, q.recentTraceCorrelatedLogs, 'range'),
+  panels.stat(1, 'Trace-Correlated Log Rate', 0, 0, 6, 6, 'loki', 'loki', q.traceCorrelatedLogRate, 'reqps', null, 'range'),
+  panels.stat(2, 'Auth Request p95', 6, 0, 6, 6, 'prometheus', 'mimir', q.authRequestP95, 's', 'p95'),
+  panels.stat(3, 'Unique Trace IDs (1h)', 12, 0, 6, 6, 'loki', 'loki', q.uniqueTraceIDsLastHour, 'short', null, 'range'),
+  panels.stat(4, 'Trace-Linked Requests', 18, 0, 6, 6, 'loki', 'loki', q.traceLinkedRequests, 'reqps', null, 'range'),
+
+  panels.timeseries(5, 'Trace-Correlated Events by Type', 0, 6, 24, 8, 'loki', 'loki', q.traceEventsByType, '{{event}}', null, null, null, 'range'),
+
+  panels.timeseriesTargets(6, 'Trace-Correlated Error/Warn Rate', 0, 14, 24, 8, 'loki', 'loki', [
+    panels.target('A', q.traceErrorLogRate, 'error', 'range'),
+    panels.target('B', q.traceWarnLogRate, 'warn', 'range'),
+  ], 'reqps'),
+
+  panels.logs(7, 'Recent Trace-Correlated Logs', 0, 22, 24, 10, q.recentTraceCorrelatedLogs, 'range'),
 ];
 
-dashboard.new('Trace Overview', 'trace-overview', 2, ['otel', 'traces', 'correlation'], panelList)
+dashboard.new('Trace Overview', 'trace-overview', 3, ['otel', 'traces', 'correlation', 'tempo'], panelList)
