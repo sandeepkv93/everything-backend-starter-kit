@@ -81,6 +81,7 @@ jobs:
         env:
           EVIDENCE_DIR: .artifacts/k8s-rollout-evidence
           ROLLOUT_ENV: staging
+          ALLOW_DEV_IMAGE_IN_NON_DEV: "true"
         run: bash scripts/ci/run_k8s_rollout_runtime_kind.sh
 
       - name: Runtime Grafana dashboard check
