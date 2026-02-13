@@ -6,8 +6,10 @@ on:
     paths:
       - 'k8s/**'
       - 'taskfiles/k8s.yaml'
+      - 'taskfiles/obs.yaml'
       - 'Taskfile.yaml'
       - 'Dockerfile'
+      - 'configs/grafana/**'
       - '.github/workflows/k8s-kind-smoke.yml'
   push:
     branches:
@@ -15,8 +17,10 @@ on:
     paths:
       - 'k8s/**'
       - 'taskfiles/k8s.yaml'
+      - 'taskfiles/obs.yaml'
       - 'Taskfile.yaml'
       - 'Dockerfile'
+      - 'configs/grafana/**'
       - '.github/workflows/k8s-kind-smoke.yml'
 
 jobs:
@@ -76,6 +80,11 @@ jobs:
           EVIDENCE_DIR: .artifacts/k8s-rollout-evidence
           ROLLOUT_ENV: staging
         run: bash scripts/ci/run_k8s_rollout_runtime_kind.sh
+
+      - name: Runtime Grafana dashboard check
+        env:
+          EVIDENCE_DIR: .artifacts/k8s-rollout-evidence
+        run: bash scripts/ci/run_grafana_dashboards_runtime_check.sh
 
       - name: Upload rollout evidence
         if: always()

@@ -8,3 +8,15 @@ tasks:
   obs-validate:
     cmds:
       - go run ./cmd/obscheck run --ci
+
+  grafana:dashboards:generate:
+    cmds:
+      - bash scripts/grafana/generate_dashboards.sh
+
+  grafana:dashboards:check:
+    cmds:
+      - bash scripts/ci/run_grafana_dashboards_generate_check.sh
+
+  grafana:dashboards:runtime-check:
+    cmds:
+      - bash scripts/ci/run_grafana_dashboards_runtime_check.sh

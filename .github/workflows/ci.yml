@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       - name: Install kustomize
         env:
           KUSTOMIZE_VERSION: v5.4.2
@@ -37,6 +42,9 @@ jobs:
           tar -xzf /tmp/conftest.tgz -C /tmp conftest
           sudo mv /tmp/conftest /usr/local/bin/conftest
           conftest --version
+
+      - name: Validate Grafana dashboard generation
+        run: bash scripts/ci/run_grafana_dashboards_generate_check.sh
 
       - name: Validate k8s manifests
         run: bash scripts/ci/run_k8s_manifest_validate.sh

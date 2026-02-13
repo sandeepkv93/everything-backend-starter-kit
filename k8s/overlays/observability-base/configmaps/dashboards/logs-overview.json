@@ -1,5 +1,7 @@
 {
-  "annotations": {"list": []},
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -7,8 +9,16 @@
   "links": [],
   "panels": [
     {
-      "datasource": {"type": "loki", "uid": "loki"},
-      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 0},
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "options": {
         "dedupStrategy": "none",
@@ -31,9 +41,17 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["otel", "logs"],
-  "templating": {"list": []},
-  "time": {"from": "now-1h", "to": "now"},
+  "tags": [
+    "otel",
+    "logs"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "title": "Logs Overview",
   "uid": "logs-overview",
   "version": 1

@@ -261,3 +261,4 @@ task k8s:rollout-status
 - Task entrypoints: `taskfiles/k8s.yaml`
 - Operational rollout policy: `docs/k8s-rollout-governance.md`
 - CI gates: `.github/workflows/ci.yml`, `.github/workflows/k8s-kind-smoke.yml`
+- Grafana dashboard IaC source: `configs/grafana/jsonnet/` (generated outputs: `configs/grafana/dashboards/`, `k8s/overlays/observability-base/configmaps/dashboards/`)
