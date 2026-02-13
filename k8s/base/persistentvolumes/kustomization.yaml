@@ -4,3 +4,4 @@ kind: Kustomization
 # StatefulSet volumeClaimTemplates in deployments/* manage PVC lifecycle.
 # This placeholder keeps room for explicit PVC/storage class resources
 # in future overlays.
+resources: []
