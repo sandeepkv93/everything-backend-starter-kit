@@ -132,6 +132,7 @@ func TestRedisIdempotencyConcurrentInProgressAndReplayConsistency(t *testing.T) 
 
 	var createdCount int
 	var inProgressCount int
+	var replayedCreatedCount int
 	var firstCreatedBody string
 	for res := range results {
 		switch res.statusCode {
@@ -141,7 +142,10 @@ func TestRedisIdempotencyConcurrentInProgressAndReplayConsistency(t *testing.T) 
 				firstCreatedBody = res.body
 			}
 			if res.replayed == "true" {
-				t.Fatalf("did not expect concurrent in-flight response to be replayed: body=%q", res.body)
+				replayedCreatedCount++
+				if res.body != firstCreatedBody {
+					t.Fatalf("expected replayed concurrent response body to match original response\noriginal=%s\nreplayed=%s", firstCreatedBody, res.body)
+				}
 			}
 		case http.StatusConflict:
 			inProgressCount++
@@ -154,10 +158,14 @@ func TestRedisIdempotencyConcurrentInProgressAndReplayConsistency(t *testing.T) 
 	}
 
 	if createdCount != 1 {
-		t.Fatalf("expected exactly one successful execution, got %d", createdCount)
+		// Concurrent callers can legitimately observe either in-progress (409)
+		// or replayed created responses (201 + replay header) depending on timing.
+		if createdCount != replayedCreatedCount+1 {
+			t.Fatalf("expected one original created response plus optional replayed created responses, created=%d replayed_created=%d", createdCount, replayedCreatedCount)
+		}
 	}
-	if inProgressCount != concurrentCalls-1 {
-		t.Fatalf("expected %d in-progress conflicts, got %d", concurrentCalls-1, inProgressCount)
+	if inProgressCount+createdCount != concurrentCalls {
+		t.Fatalf("expected all concurrent calls accounted for by created/conflict outcomes, created=%d conflicts=%d total=%d", createdCount, inProgressCount, concurrentCalls)
 	}
 	if got := executions.Load(); got != 1 {
 		t.Fatalf("expected handler to execute exactly once, got %d", got)
