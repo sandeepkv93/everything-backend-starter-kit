@@ -17,6 +17,10 @@ configMapGenerator:
     behavior: replace
     files:
       - config/loki.yaml
+  - name: mimir-config
+    behavior: replace
+    files:
+      - config/mimir.yaml
 
 patches:
   - path: patches/persistence.yaml

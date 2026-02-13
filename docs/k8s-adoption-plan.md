@@ -273,8 +273,9 @@ This order gets reliable Kubernetes parity quickly, then layers observability co
   - next: wire environment-specific IAM/Vault roles and secret names per cluster in platform IaC.
   - keep SOPS as fallback for non-cloud local workflows.
 - Capacity and retention hardening:
-  - finalize per-component retention and storage sizing defaults for Tempo/Loki/Mimir.
-  - define alert thresholds for PVC usage and ingestion backpressure.
+  - ✅ finalized baseline retention and storage sizing defaults for Tempo/Loki/Mimir in `observability-prod-like`.
+  - ✅ added operational threshold check (`task k8s:obs-capacity-check`) for PVC capacity floor and restart/backpressure proxy signals.
+  - next: integrate metric-native alerting (PVC usage %, ingestion queue pressure) with cluster Prometheus stack.
 - Availability hardening:
   - decide default replica policy for API in non-dev overlays.
   - define PDB strategy for stateful data services aligned with maintenance windows.

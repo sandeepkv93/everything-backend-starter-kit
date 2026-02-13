@@ -178,6 +178,7 @@ task k8s:deploy-observability-ci
 task k8s:deploy-observability-prod-like
 task k8s:deploy-observability-prod-like-ha
 task k8s:obs-status
+task k8s:obs-capacity-check
 task k8s:port-forward-grafana
 ```
 
@@ -231,3 +232,12 @@ task k8s:cluster-delete
 ```bash
 task k8s:setup-full
 ```
+
+Observability capacity/retention baseline:
+- `observability-prod-like` sets retention defaults to 7 days for Tempo/Loki/Mimir.
+- PVC minimum requested storage thresholds:
+  - Tempo: `2Gi`
+  - Loki: `4Gi`
+  - Mimir: `5Gi`
+  - Grafana: `2Gi`
+- Use `task k8s:obs-capacity-check` to validate PVC size floor and restart/backpressure proxy thresholds.
