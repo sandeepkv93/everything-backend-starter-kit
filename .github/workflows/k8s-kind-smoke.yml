@@ -70,6 +70,8 @@ jobs:
           SECRETS
 
       - name: Bring up kind + k8s dev overlay
+        env:
+          INSTALL_INGRESS_NGINX: "false"
         run: task k8s:setup-full
 
       - name: Health checks

@@ -4,6 +4,7 @@ set -euo pipefail
 CLUSTER_NAME="${KIND_CLUSTER_NAME:-secure-observable}"
 KIND_CONFIG="${KIND_CONFIG:-k8s/kind-config.yaml}"
 INSTALL_METRICS_SERVER="${INSTALL_METRICS_SERVER:-false}"
+INSTALL_INGRESS_NGINX="${INSTALL_INGRESS_NGINX:-true}"
 INGRESS_NGINX_VERSION="${INGRESS_NGINX_VERSION:-controller-v1.11.3}"
 METRICS_SERVER_VERSION="${METRICS_SERVER_VERSION:-v0.7.2}"
 
@@ -49,7 +50,12 @@ create_cluster() {
   fi
 
   kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
-  install_ingress_nginx
+
+  if [[ "${INSTALL_INGRESS_NGINX}" == "true" ]]; then
+    install_ingress_nginx
+  else
+    echo "Skipping ingress-nginx installation (INSTALL_INGRESS_NGINX=${INSTALL_INGRESS_NGINX})"
+  fi
 
   if [[ "${INSTALL_METRICS_SERVER}" == "true" ]]; then
     install_metrics_server
