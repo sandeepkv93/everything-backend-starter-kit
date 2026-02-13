@@ -39,7 +39,7 @@ jobs:
           curl -sSL "https://github.com/argoproj/argo-rollouts/releases/download/${ARGO_ROLLOUTS_VERSION}/kubectl-argo-rollouts-linux-amd64" -o /tmp/kubectl-argo-rollouts
           chmod +x /tmp/kubectl-argo-rollouts
           sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
-          kubectl argo rollouts version --client
+          kubectl argo rollouts version
 
       - name: Prepare local k8s secrets env
         run: |
