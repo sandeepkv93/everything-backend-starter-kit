@@ -275,7 +275,7 @@ This order gets reliable Kubernetes parity quickly, then layers observability co
 - Capacity and retention hardening:
   - ✅ finalized baseline retention and storage sizing defaults for Tempo/Loki/Mimir in `observability-prod-like`.
   - ✅ added operational threshold check (`task k8s:obs-capacity-check`) for PVC capacity floor and restart/backpressure proxy signals.
-  - next: integrate metric-native alerting (PVC usage %, ingestion queue pressure) with cluster Prometheus stack.
+  - ✅ added metric-native alert gate helper (`task k8s:obs-alert-check`) for API 5xx ratio, Redis error/saturation ratio, and optional PVC/OTel queue pressure enforcement.
 - Availability hardening:
   - ✅ default API replica policy set for non-dev baseline (`prod-like`: replicas 2, maxUnavailable 0, maxSurge 1).
   - ✅ defined PDB strategy for stateful data services (`postgres` and `redis`: minAvailable 1 in prod-like).

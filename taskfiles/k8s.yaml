@@ -131,6 +131,10 @@ tasks:
     cmds:
       - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/obs-capacity-check.sh
 
+  k8s:obs-alert-check:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/obs-alert-check.sh
+
   k8s:logs-api:
     cmds:
       - kubectl -n {{.K8S_NAMESPACE}} logs deploy/secure-observable-api --tail=200
@@ -189,6 +193,10 @@ tasks:
   k8s:validate-rollout-overlay:
     cmds:
       - bash scripts/ci/run_k8s_rollout_validate.sh
+
+  k8s:validate-obs-alert-script:
+    cmds:
+      - bash scripts/ci/run_k8s_obs_alert_script_check.sh
 
   k8s:apply-external-secrets-dev:
     cmds:

@@ -122,6 +122,7 @@ ClusterSecretStore overlays (pick exactly one auth mode per cluster):
 ```bash
 task k8s:validate-secret-stores
 task k8s:validate-rollout-overlay
+task k8s:validate-obs-alert-script
 # AWS (recommended identity mode)
 task k8s:apply-secret-store-aws-irsa
 # AWS fallback (static credentials secret)
@@ -183,6 +184,7 @@ task k8s:deploy-observability-prod-like
 task k8s:deploy-observability-prod-like-ha
 task k8s:obs-status
 task k8s:obs-capacity-check
+task k8s:obs-alert-check
 task k8s:port-forward-grafana
 ```
 
