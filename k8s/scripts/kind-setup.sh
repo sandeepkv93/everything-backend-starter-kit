@@ -25,7 +25,7 @@ install_ingress_nginx() {
 
   echo "Installing ingress-nginx (${INGRESS_NGINX_VERSION})..."
   kubectl apply -f "${manifest_url}"
-  kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=240s
+  kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=600s
 }
 
 install_metrics_server() {
