@@ -271,3 +271,7 @@ staging-first governance policy for blue/green:
   - `task k8s:rollout-promote-production ALLOW_PROD_ROLLOUTS=true`
   - `task k8s:rollout-abort-production ALLOW_PROD_ROLLOUTS=true`
 - use `task k8s:validate-rollout-overlay` to enforce rollout manifest policy in CI/local.
+
+
+rollout governance runbook:
+- `docs/k8s-rollout-governance.md`
