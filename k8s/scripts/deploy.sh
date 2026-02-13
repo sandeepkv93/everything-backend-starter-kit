@@ -23,6 +23,13 @@ resolve_target() {
         echo ""
       fi
       ;;
+    rollout-bluegreen)
+      if [[ -d "k8s/overlays/rollouts/blue-green" ]]; then
+        echo "k8s/overlays/rollouts/blue-green"
+      else
+        echo ""
+      fi
+      ;;
     staging)
       if [[ -d "k8s/overlays/staging" ]]; then
         echo "k8s/overlays/staging"
@@ -81,13 +88,13 @@ resolve_target() {
 TARGET="$(resolve_target)"
 if [[ -z "${TARGET}" ]]; then
   echo "Unknown or unavailable profile '${PROFILE}'" >&2
-  echo "Usage: $0 [base|development|prod-like|staging|production|observability|observability-dev|observability-ci|observability-prod-like|observability-prod-like-ha]" >&2
+  echo "Usage: $0 [base|development|prod-like|staging|production|rollout-bluegreen|observability|observability-dev|observability-ci|observability-prod-like|observability-prod-like-ha]" >&2
   exit 1
 fi
 
 kubectl apply -k "${TARGET}"
 
-if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" == "dev" || "${PROFILE}" == "prod-like" || "${PROFILE}" == "staging" || "${PROFILE}" == "production" ]]; then
+if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" == "dev" || "${PROFILE}" == "prod-like" || "${PROFILE}" == "staging" || "${PROFILE}" == "production" || "${PROFILE}" == "rollout-bluegreen" ]]; then
   kubectl -n "${NAMESPACE}" rollout status statefulset/postgres --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s

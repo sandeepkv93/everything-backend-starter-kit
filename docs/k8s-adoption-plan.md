@@ -282,4 +282,5 @@ This order gets reliable Kubernetes parity quickly, then layers observability co
   - next: extend availability profiles for environment-specific maintenance windows (e.g., staging vs prod).
 - Rollout safety:
   - ✅ implemented staged rollout overlays by environment (`staging` and `production`) with guarded rollout windows.
-  - next: evaluate canary/blue-green controller adoption (e.g., Argo Rollouts) if progressive traffic shifting is required.
+  - ✅ added optional Argo Rollouts blue/green overlay and operational tasks (`deploy-rollout-bluegreen`, `rollout-status/promote/abort`).
+  - next: decide environment adoption policy (staging-only first vs production enablement) and controller lifecycle ownership.

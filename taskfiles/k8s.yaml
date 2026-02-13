@@ -68,6 +68,22 @@ tasks:
       - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh production
 
 
+  k8s:deploy-rollout-bluegreen:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh rollout-bluegreen
+
+  k8s:rollout-status:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} ROLLOUT_NAME=secure-observable-api bash k8s/scripts/rollouts.sh status
+
+  k8s:rollout-promote:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} ROLLOUT_NAME=secure-observable-api bash k8s/scripts/rollouts.sh promote
+
+  k8s:rollout-abort:
+    cmds:
+      - K8S_NAMESPACE={{.K8S_NAMESPACE}} ROLLOUT_NAME=secure-observable-api bash k8s/scripts/rollouts.sh abort
+
   k8s:deploy-observability:
     cmds:
       - K8S_NAMESPACE={{.K8S_NAMESPACE}} bash k8s/scripts/deploy.sh observability

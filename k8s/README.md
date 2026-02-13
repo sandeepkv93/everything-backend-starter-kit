@@ -169,6 +169,7 @@ Production-like app overlay deploy (replicas, rollout strategy, and API PDB):
 task k8s:deploy-prod-like
 task k8s:deploy-staging
 task k8s:deploy-production
+task k8s:deploy-rollout-bluegreen
 ```
 
 Observability overlay deploy:
@@ -255,3 +256,10 @@ staged rollout strategy:
 - `staging` overlay: API `replicas: 2`, `minReadySeconds: 20`, `progressDeadlineSeconds: 600`.
 - `production` overlay: API `replicas: 3`, `minReadySeconds: 30`, `progressDeadlineSeconds: 900`.
 - both keep `maxUnavailable: 0` and `maxSurge: 1` to avoid capacity drops during rollout.
+
+
+optional Argo Rollouts blue/green:
+- overlay: `k8s/overlays/rollouts/blue-green`
+- deploy: `task k8s:deploy-rollout-bluegreen`
+- inspect/promote/abort: `task k8s:rollout-status`, `task k8s:rollout-promote`, `task k8s:rollout-abort`
+- requires Argo Rollouts controller + kubectl plugin.
