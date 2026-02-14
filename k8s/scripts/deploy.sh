@@ -136,6 +136,40 @@ apply_api_image_override() {
   kubectl -n "${NAMESPACE}" set image deployment/secure-observable-api api="${API_IMAGE}"
 }
 
+wait_for_rollout_ready() {
+  local rollout_name="secure-observable-api"
+  local deadline=$((SECONDS + 240))
+
+  while (( SECONDS < deadline )); do
+    if ! kubectl -n "${NAMESPACE}" get rollout "${rollout_name}" >/dev/null 2>&1; then
+      sleep 2
+      continue
+    fi
+
+    local phase
+    local available
+    phase="$(kubectl -n "${NAMESPACE}" get rollout "${rollout_name}" -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+    available="$(kubectl -n "${NAMESPACE}" get rollout "${rollout_name}" -o jsonpath='{.status.availableReplicas}' 2>/dev/null || true)"
+
+    if [[ "${phase}" == "Degraded" ]]; then
+      echo "Rollout ${rollout_name} is Degraded" >&2
+      kubectl -n "${NAMESPACE}" get rollout "${rollout_name}" -o yaml >&2 || true
+      return 1
+    fi
+
+    if [[ "${available:-0}" =~ ^[0-9]+$ ]] && (( available >= 1 )); then
+      echo "Rollout ${rollout_name} has ${available} available replica(s) (phase=${phase:-unknown})"
+      return 0
+    fi
+
+    sleep 2
+  done
+
+  echo "Timed out waiting for rollout ${rollout_name} availability" >&2
+  kubectl -n "${NAMESPACE}" get rollout "${rollout_name}" -o yaml >&2 || true
+  return 1
+}
+
 TARGET="$(resolve_target)"
 if [[ -z "${TARGET}" ]]; then
   echo "Unknown or unavailable profile '${PROFILE}'" >&2
@@ -153,7 +187,7 @@ if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" ==
   kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
 
   if [[ "${PROFILE}" == "rollout-bluegreen" ]]; then
-    kubectl -n "${NAMESPACE}" rollout status rollout/secure-observable-api --timeout=240s
+    wait_for_rollout_ready
   else
     kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
   fi
