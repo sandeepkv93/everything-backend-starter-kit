@@ -1,7 +1,7 @@
 # Secure Observable Go Backend Starter Kit
 
 [![CI](https://github.com/sandeepkv93/secure-observable-go-backend-starter-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeepkv93/secure-observable-go-backend-starter-kit/actions/workflows/ci.yml)
-[![Go Version](https://img.shields.io/badge/Go-1.24.13-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.26.0-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Table of Contents
@@ -34,7 +34,7 @@ This repository is a production-oriented Go backend starter that brings together
 
 ## Tech Stack
 
-- Language/runtime: Go `1.24.13`
+- Language/runtime: Go `1.26.0`
 - HTTP framework: Chi (`github.com/go-chi/chi/v5`)
 - Persistence: PostgreSQL + GORM
 - Cache/rate limiting/idempotency backend: Redis
@@ -81,7 +81,7 @@ flowchart LR
 
 ### Prerequisites:
 
-- [Go `1.24.13`](https://go.dev/dl/)
+- [Go `1.26.0`](https://go.dev/dl/)
 - [Task](https://taskfile.dev/)
 - [Bazelisk](https://github.com/bazelbuild/bazelisk) (uses Bazel `9.0.0` from `.bazelversion`)
 - [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)

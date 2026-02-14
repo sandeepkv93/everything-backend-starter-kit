@@ -5,7 +5,7 @@ tasks:
     cmds:
       - mkdir -p ./bin
       - GOBIN=$(pwd)/bin go install github.com/securego/gosec/v2/cmd/gosec@v2.22.9
-      - GOBIN=$(pwd)/bin GOTOOLCHAIN=go1.24.13 go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+      - GOBIN=$(pwd)/bin GOTOOLCHAIN=go1.26.0 go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
       - GOBIN=$(pwd)/bin go install github.com/zricethezav/gitleaks/v8@v8.24.2
 
   security:gosec:
@@ -16,7 +16,7 @@ tasks:
   security:deps:
     deps: [security:tools]
     cmds:
-      - GOTOOLCHAIN=go1.24.13 ./bin/govulncheck ./...
+      - GOTOOLCHAIN=go1.26.0 ./bin/govulncheck ./...
 
   security:secrets:
     deps: [security:tools]

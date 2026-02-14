@@ -40,7 +40,7 @@ For architecture and flow diagrams, see `docs/diagrams.md`.
 
 ## Prerequisites
 
-- Go `1.24.13`
+- Go `1.26.0`
 - [Task](https://taskfile.dev/)
 - [Bazelisk](https://github.com/bazelbuild/bazelisk) (uses Bazel `9.0.0` from `.bazelversion`)
 - Docker and Docker Compose (for local stack)
@@ -512,7 +512,7 @@ Generation checks:
 
 Pinned versions:
 
-- Go toolchain pinned to `1.24.13` in `go.mod` and Bazel module setup.
+- Go toolchain pinned to `1.26.0` in `go.mod` and Bazel module setup.
 - Bazel version pinned to `9.0.0` in `.bazelversion` (used by Bazelisk locally and in CI).
 
 ## CI Pipeline

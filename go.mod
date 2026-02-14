@@ -1,6 +1,6 @@
 module github.com/sandeepkv93/secure-observable-go-backend-starter-kit
 
-go 1.24.13
+go 1.26.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.36.1
