@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
 )
 
 type AuthAbuseScope string

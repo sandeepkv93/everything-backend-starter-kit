@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

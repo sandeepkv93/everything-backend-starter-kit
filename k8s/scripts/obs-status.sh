@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || {
   echo "Namespace '${NAMESPACE}' not found"

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/repository"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"

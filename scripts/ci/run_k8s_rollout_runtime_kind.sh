@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
-ROLLOUT_NAME="${ROLLOUT_NAME:-secure-observable-api}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
+ROLLOUT_NAME="${ROLLOUT_NAME:-everything-backend-api}"
 ROLLOUT_ENV="${ROLLOUT_ENV:-staging}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-.artifacts/k8s-rollout-evidence}"
 API_PORT="${K8S_RUNTIME_API_PORT:-18080}"
@@ -106,7 +106,7 @@ main() {
   }
   trap cleanup_port_forwards EXIT
 
-  api_pf_pid="$(start_port_forward svc/secure-observable-api "${API_PORT}:8080" "${EVIDENCE_DIR}/portforward-api.log")"
+  api_pf_pid="$(start_port_forward svc/everything-backend-api "${API_PORT}:8080" "${EVIDENCE_DIR}/portforward-api.log")"
   mimir_pf_pid="$(start_port_forward svc/mimir "${MIMIR_PORT}:9009" "${EVIDENCE_DIR}/portforward-mimir.log")"
 
   wait_for_http "http://127.0.0.1:${API_PORT}/health/live" 30

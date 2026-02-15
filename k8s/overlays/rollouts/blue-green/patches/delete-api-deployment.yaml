@@ -1,5 +1,5 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: secure-observable-api
+  name: everything-backend-api
 $patch: delete

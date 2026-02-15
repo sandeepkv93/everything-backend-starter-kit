@@ -1,5 +1,5 @@
 module(
-    name = "secure_observable_go_backend_starter_kit",
+    name = "everything_backend_starter_kit",
     version = "0.1.0",
 )
 

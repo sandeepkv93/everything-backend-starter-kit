@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
 	"gorm.io/gorm"
 )
 

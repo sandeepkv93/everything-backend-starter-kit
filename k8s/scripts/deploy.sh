@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 PROFILE="${1:-base}"
 API_IMAGE="${API_IMAGE:-}"
 ALLOW_DEV_IMAGE_IN_NON_DEV="${ALLOW_DEV_IMAGE_IN_NON_DEV:-false}"
-DEFAULT_DEV_IMAGE="secure-observable-api:dev"
+DEFAULT_DEV_IMAGE="everything-backend-api:dev"
 
 resolve_target() {
   case "${PROFILE}" in
@@ -127,17 +127,17 @@ apply_api_image_override() {
   echo "Applying API image override: ${API_IMAGE}"
 
   if [[ "${PROFILE}" == "rollout-bluegreen" ]]; then
-    kubectl -n "${NAMESPACE}" patch rollout secure-observable-api \
+    kubectl -n "${NAMESPACE}" patch rollout everything-backend-api \
       --type='json' \
       -p="[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/image\",\"value\":\"${API_IMAGE}\"}]"
     return 0
   fi
 
-  kubectl -n "${NAMESPACE}" set image deployment/secure-observable-api api="${API_IMAGE}"
+  kubectl -n "${NAMESPACE}" set image deployment/everything-backend-api api="${API_IMAGE}"
 }
 
 wait_for_rollout_ready() {
-  local rollout_name="secure-observable-api"
+  local rollout_name="everything-backend-api"
   local deadline=$((SECONDS + 240))
 
   while (( SECONDS < deadline )); do
@@ -189,15 +189,15 @@ if [[ "${PROFILE}" == "base" || "${PROFILE}" == "development" || "${PROFILE}" ==
   if [[ "${PROFILE}" == "rollout-bluegreen" ]]; then
     wait_for_rollout_ready
   else
-    kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
+    kubectl -n "${NAMESPACE}" rollout status deployment/everything-backend-api --timeout=240s
   fi
 fi
 
 if [[ "${PROFILE}" == observability* ]]; then
-  kubectl -n "${NAMESPACE}" rollout restart deployment/secure-observable-api
+  kubectl -n "${NAMESPACE}" rollout restart deployment/everything-backend-api
   kubectl -n "${NAMESPACE}" rollout status statefulset/postgres --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status statefulset/redis --timeout=240s
-  kubectl -n "${NAMESPACE}" rollout status deployment/secure-observable-api --timeout=240s
+  kubectl -n "${NAMESPACE}" rollout status deployment/everything-backend-api --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status deployment/otel-collector --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status deployment/tempo --timeout=240s
   kubectl -n "${NAMESPACE}" rollout status deployment/loki --timeout=240s

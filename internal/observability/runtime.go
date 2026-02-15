@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
 
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"

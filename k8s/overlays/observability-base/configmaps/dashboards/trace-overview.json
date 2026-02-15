@@ -41,7 +41,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [5m]))",
+          "expr": "sum(rate({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [5m]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -82,7 +82,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket{job=\"secure-observable-go-backend-starter-kit\"}[5m])) by (le, endpoint))",
+          "expr": "histogram_quantile(0.95, sum(rate(auth_request_duration_seconds_bucket{job=\"everything-backend-starter-kit\"}[5m])) by (le, endpoint))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -123,7 +123,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [1h]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [1h]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -164,7 +164,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [5m]))",
+          "expr": "sum(rate({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [5m]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -196,7 +196,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (path) (rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [5m]))",
+          "expr": "sum by (path) (rate({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [5m]))",
           "legendFormat": "{{path}}",
           "queryType": "range",
           "refId": "A"
@@ -231,19 +231,19 @@
       },
       "targets": [
         {
-          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 200 and status < 300 [5m]))",
+          "expr": "sum(rate({service_name=\"everything-backend-starter-kit\"} | json | status >= 200 and status < 300 [5m]))",
           "legendFormat": "2xx",
           "queryType": "range",
           "refId": "A"
         },
         {
-          "expr": "sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 400 and status < 500 [5m]))",
+          "expr": "sum(rate({service_name=\"everything-backend-starter-kit\"} | json | status >= 400 and status < 500 [5m]))",
           "legendFormat": "4xx",
           "queryType": "range",
           "refId": "B"
         },
         {
-          "expr": "(sum(rate({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 500 and status < 600 [5m])) or vector(0))",
+          "expr": "(sum(rate({service_name=\"everything-backend-starter-kit\"} | json | status >= 500 and status < 600 [5m])) or vector(0))",
           "legendFormat": "5xx",
           "queryType": "range",
           "refId": "C"
@@ -275,7 +275,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\"",
+          "expr": "{service_name=\"everything-backend-starter-kit\"} | json | path!=\"\"",
           "queryType": "range",
           "refId": "A"
         }

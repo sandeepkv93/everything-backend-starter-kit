@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/response"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
 )
 
 type Decision struct {

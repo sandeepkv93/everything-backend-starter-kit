@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
-ROLLOUT_NAME="${ROLLOUT_NAME:-secure-observable-api}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
+ROLLOUT_NAME="${ROLLOUT_NAME:-everything-backend-api}"
 ROLLOUT_ENV="${ROLLOUT_ENV:-staging}"
-PREVIEW_SERVICE="${ROLLOUT_PREVIEW_SERVICE:-secure-observable-api-preview}"
+PREVIEW_SERVICE="${ROLLOUT_PREVIEW_SERVICE:-everything-backend-api-preview}"
 HEALTH_PORT="${K8S_ROLLOUT_HEALTH_PORT:-18081}"
 
 MAX_RESTARTS_STAGING="${ROLLOUT_MAX_RESTARTS_STAGING:-2}"
@@ -64,7 +64,7 @@ check_restart_budget() {
   local max_restarts total_restarts
   max_restarts="$(select_env_value "${MAX_RESTARTS_STAGING}" "${MAX_RESTARTS_PRODUCTION}")"
 
-  total_restarts="$(kubectl -n "${NAMESPACE}" get pods -l app.kubernetes.io/name=secure-observable-api -o json | jq '[.items[].status.containerStatuses[]? | .restartCount] | add // 0')"
+  total_restarts="$(kubectl -n "${NAMESPACE}" get pods -l app.kubernetes.io/name=everything-backend-api -o json | jq '[.items[].status.containerStatuses[]? | .restartCount] | add // 0')"
 
   if [[ "${total_restarts}" -gt "${max_restarts}" ]]; then
     echo "rollout-precheck: restart budget exceeded (${total_restarts} > ${max_restarts})" >&2

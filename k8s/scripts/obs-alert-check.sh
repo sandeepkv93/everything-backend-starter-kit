@@ -2,8 +2,8 @@
 set -euo pipefail
 
 MIMIR_PROM_URL="${MIMIR_PROM_URL:-http://localhost:9009/prometheus}"
-API_JOB="${API_JOB:-secure-observable-go-backend-starter-kit}"
-K8S_NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+API_JOB="${API_JOB:-everything-backend-starter-kit}"
+K8S_NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 
 API_5XX_MAX="${ALERT_API_5XX_MAX:-0.05}"
 REDIS_ERR_MAX="${ALERT_REDIS_ERR_MAX:-0.05}"

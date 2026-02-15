@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 DELETE_CLUSTER="${DELETE_CLUSTER:-false}"
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-secure-observable}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-everything-backend}"
 
 kubectl delete ns "${NAMESPACE}" --ignore-not-found=true --wait=false >/dev/null 2>&1 || true
 

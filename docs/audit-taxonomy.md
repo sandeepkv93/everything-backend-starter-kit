@@ -67,18 +67,18 @@ Idempotency:
 All successful admin role mutations:
 
 ```logql
-{service_name="secure-observable-go-backend-starter-kit"} | json | event_name=~"admin\\.role\\..*" | outcome="success"
+{service_name="everything-backend-starter-kit"} | json | event_name=~"admin\\.role\\..*" | outcome="success"
 ```
 
 Authentication failures with reasons:
 
 ```logql
-{service_name="secure-observable-go-backend-starter-kit"} | json | event_name=~"auth\\..*" | outcome!="success" | line_format "{{.event_name}} {{.outcome}} {{.reason}}"
+{service_name="everything-backend-starter-kit"} | json | event_name=~"auth\\..*" | outcome!="success" | line_format "{{.event_name}} {{.outcome}} {{.reason}}"
 ```
 
 Trace-correlated audit events:
 
 ```logql
-{service_name="secure-observable-go-backend-starter-kit"} | json | trace_id!="" | event_name=~"(auth|admin|session)\\..*"
+{service_name="everything-backend-starter-kit"} | json | trace_id!="" | event_name=~"(auth|admin|session)\\..*"
 ```
 

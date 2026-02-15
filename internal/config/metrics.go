@@ -17,7 +17,7 @@ var (
 
 func recordConfigValidationEvent(ctx context.Context, profile, outcome, errorClass string) {
 	configMetricsOnce.Do(func() {
-		counter, err := otel.Meter("secure-observable-go-backend-starter-kit").Int64Counter("config.validation.events")
+		counter, err := otel.Meter("everything-backend-starter-kit").Int64Counter("config.validation.events")
 		if err == nil {
 			configCounter = counter
 		}

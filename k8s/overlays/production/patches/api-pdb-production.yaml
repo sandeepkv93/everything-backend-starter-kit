@@ -1,6 +1,6 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: secure-observable-api
+  name: everything-backend-api
 spec:
   minAvailable: 2

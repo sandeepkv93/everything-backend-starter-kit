@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 
 if ! kubectl get crd rollouts.argoproj.io >/dev/null 2>&1; then
   echo "ERROR: Argo Rollouts CRD (rollouts.argoproj.io) not found in cluster." >&2

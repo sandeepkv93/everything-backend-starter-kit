@@ -3,9 +3,9 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/response"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/service"
 )
 
 func RequirePermission(rbac service.RBACAuthorizer, resolver service.PermissionResolver, permission string) func(http.Handler) http.Handler {

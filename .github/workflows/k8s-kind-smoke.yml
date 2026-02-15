@@ -102,7 +102,7 @@ jobs:
         run: |
           task k8s:status || true
           task k8s:obs-status || true
-          kubectl -n secure-observable get rollout secure-observable-api -o yaml || true
+          kubectl -n everything-backend get rollout everything-backend-api -o yaml || true
           kubectl -n argo-rollouts get deploy,pods || true
 
       - name: Cleanup

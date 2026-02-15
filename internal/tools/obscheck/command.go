@@ -12,10 +12,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/common"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/loadgen"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/ui"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/common"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/loadgen"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/ui"
 )
 
 type options struct {
@@ -34,7 +34,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&opts.grafanaURL, "grafana-url", "http://localhost:3000", "Grafana base URL")
 	cmd.PersistentFlags().StringVar(&opts.grafanaUser, "grafana-user", "admin", "Grafana username")
 	cmd.PersistentFlags().StringVar(&opts.grafanaPassword, "grafana-password", "admin", "Grafana password")
-	cmd.PersistentFlags().StringVar(&opts.serviceName, "service-name", "secure-observable-go-backend-starter-kit", "OTel service name")
+	cmd.PersistentFlags().StringVar(&opts.serviceName, "service-name", "everything-backend-starter-kit", "OTel service name")
 	cmd.PersistentFlags().DurationVar(&opts.window, "window", 20*time.Minute, "query lookback window")
 	cmd.PersistentFlags().BoolVar(&opts.ci, "ci", false, "non-interactive machine-readable output")
 	cmd.PersistentFlags().StringVar(&opts.baseURL, "base-url", "http://localhost:8080", "API base URL for traffic")

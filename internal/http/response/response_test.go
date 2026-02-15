@@ -47,7 +47,7 @@ func TestError_ProblemDetailsWhenRequested(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode problem details: %v", err)
 	}
-	if body["type"] != "urn:problem:secure-observable:unauthorized" {
+	if body["type"] != "urn:problem:everything-backend:unauthorized" {
 		t.Fatalf("unexpected problem type: %+v", body["type"])
 	}
 	if body["title"] != "Unauthorized" {
@@ -100,11 +100,11 @@ func TestError_StatusTypeCodeConsistencyForKeyStatuses(t *testing.T) {
 		wantType  string
 		wantTitle string
 	}{
-		{status: http.StatusBadRequest, code: "BAD_REQUEST", wantType: "urn:problem:secure-observable:bad-request", wantTitle: "Bad Request"},
-		{status: http.StatusUnauthorized, code: "UNAUTHORIZED", wantType: "urn:problem:secure-observable:unauthorized", wantTitle: "Unauthorized"},
-		{status: http.StatusForbidden, code: "FORBIDDEN", wantType: "urn:problem:secure-observable:forbidden", wantTitle: "Forbidden"},
-		{status: http.StatusNotFound, code: "NOT_FOUND", wantType: "urn:problem:secure-observable:not-found", wantTitle: "Not Found"},
-		{status: http.StatusInternalServerError, code: "INTERNAL", wantType: "urn:problem:secure-observable:internal", wantTitle: "Internal Server Error"},
+		{status: http.StatusBadRequest, code: "BAD_REQUEST", wantType: "urn:problem:everything-backend:bad-request", wantTitle: "Bad Request"},
+		{status: http.StatusUnauthorized, code: "UNAUTHORIZED", wantType: "urn:problem:everything-backend:unauthorized", wantTitle: "Unauthorized"},
+		{status: http.StatusForbidden, code: "FORBIDDEN", wantType: "urn:problem:everything-backend:forbidden", wantTitle: "Forbidden"},
+		{status: http.StatusNotFound, code: "NOT_FOUND", wantType: "urn:problem:everything-backend:not-found", wantTitle: "Not Found"},
+		{status: http.StatusInternalServerError, code: "INTERNAL", wantType: "urn:problem:everything-backend:internal", wantTitle: "Internal Server Error"},
 	}
 
 	for _, tc := range tests {

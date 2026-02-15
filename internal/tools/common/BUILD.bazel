@@ -6,7 +6,7 @@ go_library(
         "env.go",
         "output.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/common",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/common",
     visibility = ["//:__subpackages__"],
 )
 

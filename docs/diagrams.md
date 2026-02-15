@@ -566,8 +566,8 @@ flowchart TB
 
     EXTSEC -.references.-> STORES
 
-    ROLLOUT --> API_SVC[activeService\nsecure-observable-api]
-    ROLLOUT --> PREVIEW_SVC[previewService\nsecure-observable-api-preview]
+    ROLLOUT --> API_SVC[activeService\neverything-backend-api]
+    ROLLOUT --> PREVIEW_SVC[previewService\neverything-backend-api-preview]
 ```
 
 Source: `docs/diagrams/k8s-overlay-topology.mmd`
@@ -589,7 +589,7 @@ sequenceDiagram
     GH->>ARGO: Install plugin + controller
     GH->>KIND: task k8s:deploy-observability-ci
     GH->>KIND: task k8s:deploy-rollout-bluegreen
-    GH->>ARGO: rollout restart secure-observable-api
+    GH->>ARGO: rollout restart everything-backend-api
 
     GH->>LG: Generate traffic against API\n(health + business requests)
     LG->>APP: Request stream

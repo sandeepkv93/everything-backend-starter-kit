@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 MAX_RESTARTS="${OBS_MAX_RESTARTS:-3}"
 
 declare -A MIN_GI=(

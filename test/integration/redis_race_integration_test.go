@@ -21,8 +21,8 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/middleware"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/service"
 )
 
 func TestRedisRateLimiterConcurrentBurstHonorsLimit(t *testing.T) {

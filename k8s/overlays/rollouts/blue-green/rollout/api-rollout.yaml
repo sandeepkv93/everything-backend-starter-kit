@@ -1,21 +1,21 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: secure-observable-api
-  namespace: secure-observable
+  name: everything-backend-api
+  namespace: everything-backend
   labels:
-    app.kubernetes.io/name: secure-observable-api
+    app.kubernetes.io/name: everything-backend-api
     app.kubernetes.io/component: api
 spec:
   replicas: 2
   revisionHistoryLimit: 8
   selector:
     matchLabels:
-      app.kubernetes.io/name: secure-observable-api
+      app.kubernetes.io/name: everything-backend-api
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: secure-observable-api
+        app.kubernetes.io/name: everything-backend-api
         app.kubernetes.io/component: api
     spec:
       automountServiceAccountToken: false
@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: secure-observable-api:dev
+          image: everything-backend-api:dev
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -83,8 +83,8 @@ spec:
           emptyDir: {}
   strategy:
     blueGreen:
-      activeService: secure-observable-api
-      previewService: secure-observable-api-preview
+      activeService: everything-backend-api
+      previewService: everything-backend-api-preview
       autoPromotionEnabled: false
       previewReplicaCount: 1
       scaleDownDelaySeconds: 30

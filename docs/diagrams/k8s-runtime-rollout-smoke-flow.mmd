@@ -12,7 +12,7 @@ sequenceDiagram
     GH->>ARGO: Install plugin + controller
     GH->>KIND: task k8s:deploy-observability-ci
     GH->>KIND: task k8s:deploy-rollout-bluegreen
-    GH->>ARGO: rollout restart secure-observable-api
+    GH->>ARGO: rollout restart everything-backend-api
 
     GH->>LG: Generate traffic against API\n(health + business requests)
     LG->>APP: Request stream

@@ -5,13 +5,13 @@ package k8s.availability
 
 is_staging_api {
   input.kind == "Deployment"
-  object.get(input.metadata, "name", "") == "secure-observable-api"
+  object.get(input.metadata, "name", "") == "everything-backend-api"
   object.get(object.get(input.metadata, "labels", {}), "app.kubernetes.io/environment", "") == "staging"
 }
 
 is_production_api {
   input.kind == "Deployment"
-  object.get(input.metadata, "name", "") == "secure-observable-api"
+  object.get(input.metadata, "name", "") == "everything-backend-api"
   object.get(object.get(input.metadata, "labels", {}), "app.kubernetes.io/environment", "") == "production"
 }
 
@@ -48,7 +48,7 @@ deny[msg] {
 }
 
 deny[msg] {
-  is_staging_pdb("secure-observable-api")
+  is_staging_pdb("everything-backend-api")
   object.get(input.spec, "maxUnavailable", "") != 1
   msg := "staging API PDB must set maxUnavailable=1"
 }
@@ -92,7 +92,7 @@ deny[msg] {
 }
 
 deny[msg] {
-  is_production_pdb("secure-observable-api")
+  is_production_pdb("everything-backend-api")
   object.get(input.spec, "minAvailable", "") != 2
   msg := "production API PDB must set minAvailable=2"
 }

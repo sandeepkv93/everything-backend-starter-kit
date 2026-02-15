@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
 )
 
 func TestInitTracingDisabledBranch(t *testing.T) {

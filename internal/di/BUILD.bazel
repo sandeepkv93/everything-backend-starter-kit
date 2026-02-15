@@ -6,7 +6,7 @@ go_library(
         "providers.go",
         "wire_gen.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/di",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/di",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/app",

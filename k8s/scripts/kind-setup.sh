@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-secure-observable}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-everything-backend}"
 KIND_CONFIG="${KIND_CONFIG:-k8s/kind-config.yaml}"
 INSTALL_METRICS_SERVER="${INSTALL_METRICS_SERVER:-false}"
 INSTALL_INGRESS_NGINX="${INSTALL_INGRESS_NGINX:-true}"

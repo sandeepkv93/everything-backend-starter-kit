@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
-ROLLOUT_NAME="${ROLLOUT_NAME:-secure-observable-api}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
+ROLLOUT_NAME="${ROLLOUT_NAME:-everything-backend-api}"
 ROLLOUT_ENV="${ROLLOUT_ENV:-staging}"
 ALLOW_PROD_ROLLOUTS="${ALLOW_PROD_ROLLOUTS:-false}"
 SKIP_PROMOTION_GATES="${SKIP_PROMOTION_GATES:-false}"

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Secure Observable Go Backend Starter Kit API
+  title: Everything Backend Starter Kit API
   version: 1.1.0
   description: Cookie-based auth with Google OAuth2 and local email/password auth, plus RBAC-protected admin endpoints. Error responses support envelope JSON by default and RFC7807 via Accept negotiation (`application/problem+json`).
 servers:
@@ -73,7 +73,7 @@ components:
       properties:
         type:
           type: string
-          example: urn:problem:secure-observable:bad-request
+          example: urn:problem:everything-backend:bad-request
         title:
           type: string
           example: Bad Request

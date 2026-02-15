@@ -31,7 +31,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"}",
+          "expr": "{service_name=\"everything-backend-starter-kit\"}",
           "refId": "A"
         }
       ],
@@ -71,7 +71,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"error\" [1h])) or vector(0))",
+          "expr": "(sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"error\" [1h])) or vector(0))",
           "queryType": "range",
           "refId": "A"
         }
@@ -112,7 +112,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"debug\" [1h]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"debug\" [1h]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -153,7 +153,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [1h]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [1h]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -194,7 +194,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\" [1h]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | path!=\"\" [1h]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -228,25 +228,25 @@
       },
       "targets": [
         {
-          "expr": "(sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"error\" [5m])) or vector(0))",
+          "expr": "(sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"error\" [5m])) or vector(0))",
           "legendFormat": "error",
           "queryType": "range",
           "refId": "A"
         },
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"debug\" [5m]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"debug\" [5m]))",
           "legendFormat": "warn",
           "queryType": "range",
           "refId": "B"
         },
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"info\" [5m]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"info\" [5m]))",
           "legendFormat": "info",
           "queryType": "range",
           "refId": "C"
         },
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"debug\" [5m]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=\"debug\" [5m]))",
           "legendFormat": "debug",
           "queryType": "range",
           "refId": "D"
@@ -281,19 +281,19 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 200 and status < 300 [5m]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | status >= 200 and status < 300 [5m]))",
           "legendFormat": "2xx",
           "queryType": "range",
           "refId": "A"
         },
         {
-          "expr": "sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 400 and status < 500 [5m]))",
+          "expr": "sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | status >= 400 and status < 500 [5m]))",
           "legendFormat": "4xx",
           "queryType": "range",
           "refId": "B"
         },
         {
-          "expr": "(sum(count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | status >= 500 and status < 600 [5m])) or vector(0))",
+          "expr": "(sum(count_over_time({service_name=\"everything-backend-starter-kit\"} | json | status >= 500 and status < 600 [5m])) or vector(0))",
           "legendFormat": "5xx",
           "queryType": "range",
           "refId": "C"
@@ -325,7 +325,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=\"debug\"",
+          "expr": "{service_name=\"everything-backend-starter-kit\"} | json | level=\"debug\"",
           "refId": "A"
         }
       ],
@@ -355,7 +355,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | path!=\"\"",
+          "expr": "{service_name=\"everything-backend-starter-kit\"} | json | path!=\"\"",
           "refId": "A"
         }
       ],
@@ -388,7 +388,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (level) (count_over_time({service_name=\"secure-observable-go-backend-starter-kit\"} | json | level=~\"error|warn|debug\" [5m]))",
+          "expr": "sum by (level) (count_over_time({service_name=\"everything-backend-starter-kit\"} | json | level=~\"error|warn|debug\" [5m]))",
           "legendFormat": "{{level}}",
           "queryType": "range",
           "refId": "A"
@@ -420,7 +420,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"secure-observable-go-backend-starter-kit\"} | json | trace_id!=\"\"",
+          "expr": "{service_name=\"everything-backend-starter-kit\"} | json | trace_id!=\"\"",
           "refId": "A"
         }
       ],

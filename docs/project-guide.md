@@ -266,9 +266,9 @@ OTel:
 ## `.env.example` Service Naming
 
 `.env.example` is aligned with current defaults and uses:
-- `JWT_ISSUER=secure-observable-go-backend-starter-kit`
-- `JWT_AUDIENCE=secure-observable-go-backend-starter-kit-api`
-- `OTEL_SERVICE_NAME=secure-observable-go-backend-starter-kit`
+- `JWT_ISSUER=everything-backend-starter-kit`
+- `JWT_AUDIENCE=everything-backend-starter-kit-api`
+- `OTEL_SERVICE_NAME=everything-backend-starter-kit`
 
 ## Production Hardening
 

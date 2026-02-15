@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
 )
 
 func TestRBACPermissionCacheEnforcesRoleChangeWithoutRelogin(t *testing.T) {

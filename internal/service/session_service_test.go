@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/repository"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
 )
 
 type stubSessionRepository struct {

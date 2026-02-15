@@ -8,12 +8,12 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/health"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/handler"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/health"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/handler"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/middleware"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/response"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/service"
 )
 
 type Dependencies struct {

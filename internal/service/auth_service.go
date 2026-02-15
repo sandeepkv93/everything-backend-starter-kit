@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/repository"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
 
 	"gorm.io/gorm"
 )

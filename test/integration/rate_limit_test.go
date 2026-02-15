@@ -9,10 +9,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/router"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/middleware"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/router"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
 )
 
 func TestRateLimiterBlocksAfterLimit(t *testing.T) {

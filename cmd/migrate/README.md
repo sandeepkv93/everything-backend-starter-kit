@@ -26,7 +26,7 @@ go run ./cmd/migrate plan --ci
 {
   "ok": true,
   "title": "migrate status",
-  "details": ["database reachable", "service: secure-observable-go-backend-starter-kit", "migrations: ready"]
+  "details": ["database reachable", "service: everything-backend-starter-kit", "migrations: ready"]
 }
 ```
 

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: secure-observable
+  name: everything-backend
   labels:
-    app.kubernetes.io/name: secure-observable-go-backend-starter-kit
-    app.kubernetes.io/part-of: secure-observable
+    app.kubernetes.io/name: everything-backend-starter-kit
+    app.kubernetes.io/part-of: everything-backend

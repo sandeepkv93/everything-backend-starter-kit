@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/repository"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
 )
 
 type SessionView struct {

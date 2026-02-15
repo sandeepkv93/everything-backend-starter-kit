@@ -24,7 +24,7 @@ go_library(
         "token_service.go",
         "user_service.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/service",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/config",

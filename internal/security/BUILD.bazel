@@ -9,7 +9,7 @@ go_library(
         "password.go",
         "state.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/security",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_golang_jwt_jwt_v5//:jwt",

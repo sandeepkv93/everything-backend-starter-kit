@@ -6,7 +6,7 @@ go_library(
         "command.go",
         "run.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/loadgen",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/loadgen",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/observability",

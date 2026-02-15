@@ -7,8 +7,8 @@ is_cluster_secret_store {
 
 deny[msg] {
   is_cluster_secret_store
-  object.get(input.metadata, "name", "") != "secure-observable-secret-store"
-  msg := "ClusterSecretStore name must be secure-observable-secret-store"
+  object.get(input.metadata, "name", "") != "everything-backend-secret-store"
+  msg := "ClusterSecretStore name must be everything-backend-secret-store"
 }
 
 deny[msg] {

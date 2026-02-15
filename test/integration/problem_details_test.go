@@ -98,7 +98,7 @@ func assertProblemDetails(t *testing.T, resp *http.Response, raw string, wantSta
 	if p.Instance != wantInstance {
 		t.Fatalf("unexpected instance field: %q", p.Instance)
 	}
-	if p.Type != "urn:problem:secure-observable:"+strings.ToLower(strings.ReplaceAll(wantCode, "_", "-")) {
+	if p.Type != "urn:problem:everything-backend:"+strings.ToLower(strings.ReplaceAll(wantCode, "_", "-")) {
 		t.Fatalf("unexpected type field: %q", p.Type)
 	}
 	if p.RequestID == "" {

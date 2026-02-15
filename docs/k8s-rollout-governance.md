@@ -37,7 +37,7 @@ Promotion now runs SLO-linked gates automatically via `k8s/scripts/rollout-prech
 1. Rollout non-degraded state:
 - `status.phase` must not be `Degraded`.
 2. Preview service health:
-- `/health/live` and `/health/ready` on `secure-observable-api-preview` must pass.
+- `/health/live` and `/health/ready` on `everything-backend-api-preview` must pass.
 3. Restart budget:
 - staging: total API pod restarts `<= 2`
 - production: total API pod restarts `<= 1`

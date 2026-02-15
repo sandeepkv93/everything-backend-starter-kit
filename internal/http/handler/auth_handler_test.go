@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/domain"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/domain"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/middleware"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/service"
 )
 
 type authErrorEnvelope struct {

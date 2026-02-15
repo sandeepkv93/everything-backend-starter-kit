@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 TEMPLATE_FILE="k8s/base/secrets/app-secrets.env.template"
 LOCAL_ENV_FILE="${K8S_APP_SECRETS_FILE:-.secrets.k8s.app.env}"
 SOPS_ENCRYPTED_FILE="k8s/secrets/app-secrets.enc.env"

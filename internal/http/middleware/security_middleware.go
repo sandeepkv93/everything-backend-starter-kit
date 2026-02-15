@@ -10,8 +10,8 @@ import (
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/response"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/response"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
 )
 
 func RequestID(next http.Handler) http.Handler { return chimiddleware.RequestID(next) }

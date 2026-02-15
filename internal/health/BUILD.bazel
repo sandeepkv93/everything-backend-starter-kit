@@ -6,7 +6,7 @@ go_library(
         "checker.go",
         "dependency.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/health",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/health",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/observability",

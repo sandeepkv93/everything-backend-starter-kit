@@ -52,7 +52,7 @@ type redisMetricsHook struct {
 }
 
 func newRedisMetricsHook(client redis.UniversalClient) (*redisMetricsHook, error) {
-	meter := otel.Meter("secure-observable-go-backend-starter-kit")
+	meter := otel.Meter("everything-backend-starter-kit")
 
 	cmdTotal, err := meter.Int64Counter(
 		"redis.command.total",

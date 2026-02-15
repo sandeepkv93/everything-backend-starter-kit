@@ -7,8 +7,8 @@ is_rollout {
 
 deny[msg] {
   is_rollout
-  object.get(input.metadata, "name", "") != "secure-observable-api"
-  msg := "Rollout name must be secure-observable-api"
+  object.get(input.metadata, "name", "") != "everything-backend-api"
+  msg := "Rollout name must be everything-backend-api"
 }
 
 deny[msg] {
@@ -26,15 +26,15 @@ deny[msg] {
 deny[msg] {
   is_rollout
   bg := input.spec.strategy.blueGreen
-  object.get(bg, "activeService", "") != "secure-observable-api"
-  msg := "Rollout blueGreen.activeService must be secure-observable-api"
+  object.get(bg, "activeService", "") != "everything-backend-api"
+  msg := "Rollout blueGreen.activeService must be everything-backend-api"
 }
 
 deny[msg] {
   is_rollout
   bg := input.spec.strategy.blueGreen
-  object.get(bg, "previewService", "") != "secure-observable-api-preview"
-  msg := "Rollout blueGreen.previewService must be secure-observable-api-preview"
+  object.get(bg, "previewService", "") != "everything-backend-api-preview"
+  msg := "Rollout blueGreen.previewService must be everything-backend-api-preview"
 }
 
 deny[msg] {

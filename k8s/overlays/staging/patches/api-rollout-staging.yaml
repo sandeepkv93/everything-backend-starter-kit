@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: secure-observable-api
+  name: everything-backend-api
 spec:
   revisionHistoryLimit: 6
   minReadySeconds: 10

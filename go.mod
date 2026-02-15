@@ -1,4 +1,4 @@
-module github.com/sandeepkv93/secure-observable-go-backend-starter-kit
+module github.com/sandeepkv93/everything-backend-starter-kit
 
 go 1.26.0
 

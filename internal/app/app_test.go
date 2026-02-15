@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/health"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/health"
 )
 
 func TestNewAssignsDependenciesAndTimeouts(t *testing.T) {

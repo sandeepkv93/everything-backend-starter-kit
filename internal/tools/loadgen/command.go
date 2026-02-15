@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/common"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/ui"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/common"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/ui"
 )
 
 type options struct {

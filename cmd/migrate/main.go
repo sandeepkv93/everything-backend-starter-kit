@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	tool "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/tools/migrate"
+	tool "github.com/sandeepkv93/everything-backend-starter-kit/internal/tools/migrate"
 )
 
 func main() {

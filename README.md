@@ -1,6 +1,6 @@
-# Secure Observable Go Backend Starter Kit
+# Everything Backend Starter Kit
 
-[![CI](https://github.com/sandeepkv93/secure-observable-go-backend-starter-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeepkv93/secure-observable-go-backend-starter-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/sandeepkv93/everything-backend-starter-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeepkv93/everything-backend-starter-kit/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.26.0-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -89,8 +89,8 @@ flowchart LR
 ### Clone the repo and cd into it
 
 ```bash
-git clone git@github.com:sandeepkv93/secure-observable-go-backend-starter-kit.git
-cd secure-observable-go-backend-starter-kit
+git clone git@github.com:sandeepkv93/everything-backend-starter-kit.git
+cd everything-backend-starter-kit
 ```
 
 ### Configure environment

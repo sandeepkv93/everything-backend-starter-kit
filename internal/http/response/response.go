@@ -114,7 +114,7 @@ func problemType(code string) string {
 	if normalized == "" {
 		normalized = "unknown"
 	}
-	return "urn:problem:secure-observable:" + normalized
+	return "urn:problem:everything-backend:" + normalized
 }
 
 func problemTitle(code string, status int) string {

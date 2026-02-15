@@ -16,17 +16,17 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/app"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/config"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/database"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/health"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/handler"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/middleware"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/http/router"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/observability"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/security"
-	"github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/service"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/app"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/config"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/database"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/health"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/handler"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/middleware"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/http/router"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/observability"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/repository"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/security"
+	"github.com/sandeepkv93/everything-backend-starter-kit/internal/service"
 )
 
 var ConfigSet = wire.NewSet(config.Load)

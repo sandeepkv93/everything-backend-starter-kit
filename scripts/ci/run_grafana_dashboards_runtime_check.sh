@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NAMESPACE="${K8S_NAMESPACE:-secure-observable}"
+NAMESPACE="${K8S_NAMESPACE:-everything-backend}"
 GRAFANA_PORT="${GRAFANA_LOCAL_PORT:-13000}"
 GRAFANA_URL="http://127.0.0.1:${GRAFANA_PORT}"
 GRAFANA_USER="${GRAFANA_USER:-admin}"

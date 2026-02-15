@@ -12,7 +12,7 @@ go_library(
         "user_repository.go",
         "verification_token_repository.go",
     ],
-    importpath = "github.com/sandeepkv93/secure-observable-go-backend-starter-kit/internal/repository",
+    importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/repository",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/domain",

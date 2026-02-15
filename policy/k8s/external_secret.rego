@@ -48,7 +48,7 @@ deny[msg] {
 }
 
 env_path_ok(key) {
-  regex.match("^secure-observable\\/(dev|staging|prod)\\/app$", key)
+  regex.match("^everything-backend\\/(dev|staging|prod)\\/app$", key)
 }
 
 deny[msg] {
@@ -65,5 +65,5 @@ deny[msg] {
   key := object.get(d.remoteRef, "key", "")
   key != ""
   not env_path_ok(key)
-  msg := sprintf("ExternalSecret mapping %q uses invalid remoteRef.key %q; expected secure-observable/{dev|staging|prod}/app", [object.get(d, "secretKey", ""), key])
+  msg := sprintf("ExternalSecret mapping %q uses invalid remoteRef.key %q; expected everything-backend/{dev|staging|prod}/app", [object.get(d, "secretKey", ""), key])
 }

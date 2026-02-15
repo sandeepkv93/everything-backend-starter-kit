@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="${IMAGE:-secure-observable-api:dev}"
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-secure-observable}"
+IMAGE="${IMAGE:-everything-backend-api:dev}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-everything-backend}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker not found" >&2
