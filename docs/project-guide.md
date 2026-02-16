@@ -549,11 +549,13 @@ Hooks:
 - `.githooks/pre-push`
   - runs `bash scripts/ci/run_all.sh`
 
-## Local Observability Stack
+## Local Development Stack
 
 `docker-compose.yml` starts:
 
 - Postgres
+- Redis
+- MinIO
 - OTel Collector
 - Tempo
 - Loki
@@ -564,6 +566,10 @@ Hooks:
 Ports:
 
 - API: `8080`
+- Postgres: `5432`
+- Redis: `6379`
+- MinIO API: `9000`
+- MinIO Console: `9001`
 - Grafana: `3000`
 - Tempo: `3200`
 - Loki: `3100`
