@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -73,6 +74,20 @@ func (s *stubSessionSvc) RevokeOtherSessions(userID, currentSessionID uint) (int
 	return 0, nil
 }
 
+type stubStorageSvc struct{}
+
+func (s *stubStorageSvc) UploadAvatar(_ context.Context, _ uint, _ io.Reader, _ int64, _ string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
+func (s *stubStorageSvc) DeleteAvatar(_ context.Context, _ string) error {
+	return errors.New("not implemented")
+}
+
+func (s *stubStorageSvc) GenerateAvatarURL(_ context.Context, _ string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
 func userReqWithClaims(r *http.Request, sub string) *http.Request {
 	claims := &security.Claims{}
 	claims.Subject = sub
@@ -88,7 +103,7 @@ func withURLParam(r *http.Request, key, val string) *http.Request {
 }
 
 func TestUserHandlerMeErrorMapping(t *testing.T) {
-	h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{})
+	h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{}, &stubStorageSvc{})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
 	rr := httptest.NewRecorder()
@@ -99,7 +114,7 @@ func TestUserHandlerMeErrorMapping(t *testing.T) {
 
 	h = NewUserHandler(&stubUserSvc{getByIDFn: func(id uint) (*domain.User, []string, error) {
 		return nil, nil, errors.New("db down")
-	}}, &stubSessionSvc{})
+	}}, &stubSessionSvc{}, &stubStorageSvc{})
 	req = userReqWithClaims(httptest.NewRequest(http.MethodGet, "/api/v1/me", nil), "7")
 	rr = httptest.NewRecorder()
 	h.Me(rr, req)
@@ -122,7 +137,7 @@ func TestUserHandlerSessionsResolveFallbackAndErrors(t *testing.T) {
 				}
 				return []service.SessionView{{ID: 1}}, nil
 			},
-		})
+		}, &stubStorageSvc{})
 		req := userReqWithClaims(httptest.NewRequest(http.MethodGet, "/api/v1/sessions", nil), "9")
 		rr := httptest.NewRecorder()
 
@@ -140,7 +155,7 @@ func TestUserHandlerSessionsResolveFallbackAndErrors(t *testing.T) {
 			resolveFn: func(r *http.Request, claims *security.Claims, userID uint) (uint, error) {
 				return 0, errors.New("backend failed")
 			},
-		})
+		}, &stubStorageSvc{})
 		req := userReqWithClaims(httptest.NewRequest(http.MethodGet, "/api/v1/sessions", nil), "9")
 		rr := httptest.NewRecorder()
 
@@ -155,7 +170,7 @@ func TestUserHandlerRevokeSessionMatrix(t *testing.T) {
 	baseReq := userReqWithClaims(httptest.NewRequest(http.MethodDelete, "/api/v1/sessions/1", nil), "11")
 
 	t.Run("invalid session id", func(t *testing.T) {
-		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{})
+		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{}, &stubStorageSvc{})
 		req := withURLParam(baseReq.Clone(baseReq.Context()), "session_id", "not-a-number")
 		rr := httptest.NewRecorder()
 		h.RevokeSession(rr, req)
@@ -167,7 +182,7 @@ func TestUserHandlerRevokeSessionMatrix(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{revokeFn: func(userID, sessionID uint) (string, error) {
 			return "", repository.ErrSessionNotFound
-		}})
+		}}, &stubStorageSvc{})
 		req := withURLParam(baseReq.Clone(baseReq.Context()), "session_id", "123")
 		rr := httptest.NewRecorder()
 		h.RevokeSession(rr, req)
@@ -179,7 +194,7 @@ func TestUserHandlerRevokeSessionMatrix(t *testing.T) {
 	t.Run("already revoked", func(t *testing.T) {
 		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{revokeFn: func(userID, sessionID uint) (string, error) {
 			return "already_revoked", nil
-		}})
+		}}, &stubStorageSvc{})
 		req := withURLParam(baseReq.Clone(baseReq.Context()), "session_id", "123")
 		rr := httptest.NewRecorder()
 		h.RevokeSession(rr, req)
@@ -197,7 +212,7 @@ func TestUserHandlerRevokeSessionMatrix(t *testing.T) {
 				t.Fatalf("unexpected args userID=%d sessionID=%d", userID, sessionID)
 			}
 			return "revoked", nil
-		}})
+		}}, &stubStorageSvc{})
 		req := withURLParam(baseReq.Clone(baseReq.Context()), "session_id", strconv.Itoa(123))
 		rr := httptest.NewRecorder()
 		h.RevokeSession(rr, req)
@@ -209,7 +224,7 @@ func TestUserHandlerRevokeSessionMatrix(t *testing.T) {
 
 func TestUserHandlerRevokeOtherSessionsMatrix(t *testing.T) {
 	t.Run("unauthorized missing claims", func(t *testing.T) {
-		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{})
+		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{}, &stubStorageSvc{})
 		rr := httptest.NewRecorder()
 		h.RevokeOtherSessions(rr, httptest.NewRequest(http.MethodPost, "/api/v1/sessions/revoke-others", nil))
 		if rr.Code != http.StatusUnauthorized {
@@ -220,7 +235,7 @@ func TestUserHandlerRevokeOtherSessionsMatrix(t *testing.T) {
 	t.Run("resolve error", func(t *testing.T) {
 		h := NewUserHandler(&stubUserSvc{}, &stubSessionSvc{resolveFn: func(r *http.Request, claims *security.Claims, userID uint) (uint, error) {
 			return 0, errors.New("cannot resolve")
-		}})
+		}}, &stubStorageSvc{})
 		rr := httptest.NewRecorder()
 		h.RevokeOtherSessions(rr, userReqWithClaims(httptest.NewRequest(http.MethodPost, "/api/v1/sessions/revoke-others", nil), "12"))
 		if rr.Code != http.StatusUnauthorized {
@@ -234,7 +249,7 @@ func TestUserHandlerRevokeOtherSessionsMatrix(t *testing.T) {
 			revokeAll: func(userID, currentSessionID uint) (int64, error) {
 				return 0, errors.New("db error")
 			},
-		})
+		}, &stubStorageSvc{})
 		rr := httptest.NewRecorder()
 		h.RevokeOtherSessions(rr, userReqWithClaims(httptest.NewRequest(http.MethodPost, "/api/v1/sessions/revoke-others", nil), "12"))
 		if rr.Code != http.StatusInternalServerError {
@@ -251,7 +266,7 @@ func TestUserHandlerRevokeOtherSessionsMatrix(t *testing.T) {
 				}
 				return 3, nil
 			},
-		})
+		}, &stubStorageSvc{})
 		rr := httptest.NewRecorder()
 		h.RevokeOtherSessions(rr, userReqWithClaims(httptest.NewRequest(http.MethodPost, "/api/v1/sessions/revoke-others", nil), "12"))
 		if rr.Code != http.StatusOK {

@@ -510,6 +510,9 @@ func TestValidateProdProfileDisallowsFailOpenForSensitiveRateLimitScopes(t *test
 	cfg.RedisTLSEnabled = true
 	cfg.RedisTLSServerName = "redis.internal"
 	cfg.RateLimitRedisEnabled = true
+	cfg.MinIOAccessKey = "minio-access-key"
+	cfg.MinIOSecretKey = "minio-secret-key"
+	cfg.MinIOUseSSL = true
 
 	cfg.RateLimitOutagePolicyAuth = "fail_open"
 	cfg.RateLimitOutagePolicyForgot = "fail_open"
@@ -597,5 +600,10 @@ func newValidConfigForProfileTests() *Config {
 		ShutdownTimeout:                   20 * time.Second,
 		ShutdownHTTPDrainTimeout:          10 * time.Second,
 		ShutdownObservabilityTimeout:      8 * time.Second,
+		MinIOEndpoint:                     "localhost:9000",
+		MinIOBucketName:                   "avatars",
+		MinIOAccessKey:                    "minioadmin",
+		MinIOSecretKey:                    "minioadmin",
+		MinIOUseSSL:                       false,
 	}
 }

@@ -62,6 +62,7 @@ var ServiceSet = wire.NewSet(
 	service.NewUserService,
 	provideSessionService,
 	provideTokenService,
+	provideStorageService,
 	service.NewGoogleOAuthProvider,
 	service.NewDevEmailVerificationNotifier,
 	wire.Bind(new(service.EmailVerificationNotifier), new(*service.DevEmailVerificationNotifier)),
@@ -280,6 +281,16 @@ func provideTokenService(cfg *config.Config, jwt *security.JWTManager, sessionRe
 
 func provideSessionService(cfg *config.Config, sessionRepo repository.SessionRepository) *service.SessionService {
 	return service.NewSessionService(sessionRepo, cfg.RefreshTokenPepper)
+}
+
+func provideStorageService(cfg *config.Config) (service.StorageService, error) {
+	return service.NewMinIOStorageService(
+		cfg.MinIOEndpoint,
+		cfg.MinIOAccessKey,
+		cfg.MinIOSecretKey,
+		cfg.MinIOBucketName,
+		cfg.MinIOUseSSL,
+	)
 }
 
 func provideAuthAbuseGuard(cfg *config.Config, redisClient redis.UniversalClient) service.AuthAbuseGuard {

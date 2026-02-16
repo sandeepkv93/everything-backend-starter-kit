@@ -359,7 +359,7 @@ func newAuthTestServerWithOptions(t *testing.T, opts authTestServerOptions) (str
 	}, jwtMgr)
 
 	authHandler := handler.NewAuthHandler(authSvc, abuseGuard, cookieMgr, bypassEvaluator, "0123456789abcdef0123456789abcdef", cfg.JWTRefreshTTL)
-	userHandler := handler.NewUserHandler(userSvc, sessionSvc)
+	userHandler := handler.NewUserHandler(userSvc, sessionSvc, nil)
 	adminUserSvc := opts.adminUserSvc
 	if adminUserSvc == nil {
 		adminUserSvc = userSvc

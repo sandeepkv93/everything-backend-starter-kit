@@ -51,7 +51,11 @@ func InitializeApp() (*app.App, error) {
 	bypassEvaluator := provideRequestBypassEvaluator(configConfig, jwtManager)
 	authHandler := provideAuthHandler(authService, authAbuseGuard, cookieManager, bypassEvaluator, configConfig)
 	sessionService := provideSessionService(configConfig, sessionRepository)
-	userHandler := handler.NewUserHandler(userService, sessionService)
+	storageService, err := provideStorageService(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	userHandler := handler.NewUserHandler(userService, sessionService, storageService)
 	permissionRepository := repository.NewPermissionRepository(db)
 	rbacPermissionCacheStore := provideRBACPermissionCacheStore(configConfig, universalClient)
 	permissionResolver := providePermissionResolver(configConfig, userService, rbacPermissionCacheStore)

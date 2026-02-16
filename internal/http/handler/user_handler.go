@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -18,12 +19,14 @@ import (
 type UserHandler struct {
 	userSvc    service.UserServiceInterface
 	sessionSvc service.SessionServiceInterface
+	storageSvc service.StorageService
 }
 
-func NewUserHandler(userSvc service.UserServiceInterface, sessionSvc service.SessionServiceInterface) *UserHandler {
+func NewUserHandler(userSvc service.UserServiceInterface, sessionSvc service.SessionServiceInterface, storageSvc service.StorageService) *UserHandler {
 	return &UserHandler{
 		userSvc:    userSvc,
 		sessionSvc: sessionSvc,
+		storageSvc: storageSvc,
 	}
 }
 
@@ -164,6 +167,119 @@ func (h *UserHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Request
 	response.JSON(w, r, http.StatusOK, map[string]any{
 		"current_session_id": currentSessionID,
 		"revoked_count":      revokedCount,
+	})
+}
+
+func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	userID, _, err := authUserIDAndClaims(r)
+	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_unauthorized")
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
+		return
+	}
+
+	// Parse multipart form (limit 10MB in memory)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_parse_error")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "failed to parse multipart form", nil)
+		return
+	}
+
+	// Get file from form
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_missing_file")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "avatar file is required", nil)
+		return
+	}
+	defer func() { _ = file.Close() }()
+
+	// Upload to storage
+	objectKey, err := h.storageSvc.UploadAvatar(r.Context(), userID, file, header.Size, header.Header.Get("Content-Type"))
+	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_storage_error")
+		if errors.Is(err, service.ErrFileTooBig) {
+			response.Error(w, r, http.StatusBadRequest, "FILE_TOO_LARGE", "file size exceeds 5MB limit", nil)
+			return
+		}
+		if errors.Is(err, service.ErrInvalidFileType) {
+			response.Error(w, r, http.StatusBadRequest, "INVALID_FILE_TYPE", "only JPEG and PNG images are allowed", nil)
+			return
+		}
+		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to upload avatar", nil)
+		return
+	}
+
+	// Generate presigned URL for response
+	avatarURL, err := h.storageSvc.GenerateAvatarURL(r.Context(), objectKey)
+	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_url_error")
+		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to generate avatar URL", nil)
+		return
+	}
+
+	observability.EmitAudit(r, observability.AuditInput{
+		EventName:   "avatar.upload",
+		ActorUserID: observability.ActorUserID(userID),
+		TargetType:  "avatar",
+		TargetID:    objectKey,
+		Action:      "upload",
+		Outcome:     "success",
+		Reason:      "avatar_uploaded",
+	}, "object_key", objectKey, "file_size", header.Size, "content_type", header.Header.Get("Content-Type"))
+	observability.RecordUserProfileEvent(r.Context(), "avatar_upload_success")
+	response.JSON(w, r, http.StatusOK, map[string]any{
+		"object_key":  objectKey,
+		"avatar_url":  avatarURL,
+		"file_size":   header.Size,
+		"uploaded_at": "now",
+	})
+}
+
+func (h *UserHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	userID, _, err := authUserIDAndClaims(r)
+	if err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_delete_unauthorized")
+		response.Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid user", nil)
+		return
+	}
+
+	// Get object_key from request body
+	var req struct {
+		ObjectKey string `json:"object_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_delete_parse_error")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "invalid request body", nil)
+		return
+	}
+
+	if req.ObjectKey == "" {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_delete_missing_key")
+		response.Error(w, r, http.StatusBadRequest, "BAD_REQUEST", "object_key is required", nil)
+		return
+	}
+
+	// Delete from storage
+	if err := h.storageSvc.DeleteAvatar(r.Context(), req.ObjectKey); err != nil {
+		observability.RecordUserProfileEvent(r.Context(), "avatar_delete_storage_error")
+		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to delete avatar", nil)
+		return
+	}
+
+	observability.EmitAudit(r, observability.AuditInput{
+		EventName:   "avatar.delete",
+		ActorUserID: observability.ActorUserID(userID),
+		TargetType:  "avatar",
+		TargetID:    req.ObjectKey,
+		Action:      "delete",
+		Outcome:     "success",
+		Reason:      "avatar_deleted",
+	}, "object_key", req.ObjectKey)
+	observability.RecordUserProfileEvent(r.Context(), "avatar_delete_success")
+	response.JSON(w, r, http.StatusOK, map[string]any{
+		"object_key": req.ObjectKey,
+		"deleted":    true,
 	})
 }
 

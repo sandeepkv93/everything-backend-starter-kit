@@ -126,6 +126,12 @@ type Config struct {
 	OTELTracingEnabled        bool
 	OTELLogsEnabled           bool
 	OTELLogLevel              string
+
+	MinIOEndpoint   string
+	MinIOAccessKey  string
+	MinIOSecretKey  string
+	MinIOBucketName string
+	MinIOUseSSL     bool
 }
 
 func Load() (cfg *Config, err error) {
@@ -231,6 +237,12 @@ func Load() (cfg *Config, err error) {
 		OTELTracingEnabled:       getEnvBool("OTEL_TRACING_ENABLED", true),
 		OTELLogsEnabled:          getEnvBool("OTEL_LOGS_ENABLED", true),
 		OTELLogLevel:             strings.ToLower(getEnv("OTEL_LOG_LEVEL", "info")),
+
+		MinIOEndpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey:  os.Getenv("MINIO_ACCESS_KEY"),
+		MinIOSecretKey:  os.Getenv("MINIO_SECRET_KEY"),
+		MinIOBucketName: getEnv("MINIO_BUCKET_NAME", "avatars"),
+		MinIOUseSSL:     getEnvBool("MINIO_USE_SSL", false),
 	}
 
 	accessTTL, err := time.ParseDuration(getEnv("JWT_ACCESS_TTL", "15m"))
@@ -659,6 +671,21 @@ func (c *Config) Validate() error {
 		}
 		if strings.EqualFold(c.RateLimitOutagePolicyAdminS, stringFailOpen()) {
 			errs = append(errs, "RATE_LIMIT_REDIS_OUTAGE_POLICY_ROUTE_ADMIN_SYNC must be fail_closed in production/staging")
+		}
+		if strings.TrimSpace(c.MinIOEndpoint) == "" {
+			errs = append(errs, "MINIO_ENDPOINT is required in production/staging")
+		}
+		if strings.TrimSpace(c.MinIOBucketName) == "" {
+			errs = append(errs, "MINIO_BUCKET_NAME is required in production/staging")
+		}
+		if strings.TrimSpace(c.MinIOAccessKey) == "" {
+			errs = append(errs, "MINIO_ACCESS_KEY is required in production/staging")
+		}
+		if strings.TrimSpace(c.MinIOSecretKey) == "" {
+			errs = append(errs, "MINIO_SECRET_KEY is required in production/staging")
+		}
+		if !c.MinIOUseSSL {
+			errs = append(errs, "MINIO_USE_SSL must be true in production/staging")
 		}
 	}
 	if redisRequired && !isLocalLikeEnv(c.Env) {
