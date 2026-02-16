@@ -133,6 +133,9 @@ func NewRouter(dep Dependencies) http.Handler {
 			r.Use(middleware.CSRFMiddleware)
 			r.Delete("/me/sessions/{session_id}", dep.UserHandler.RevokeSession)
 			r.Post("/me/sessions/revoke-others", dep.UserHandler.RevokeOtherSessions)
+			// Avatar upload needs higher body limit (6MB) than global default (1MB)
+			r.With(middleware.BodyLimit(6<<20)).Post("/me/avatar", dep.UserHandler.UploadAvatar)
+			r.Delete("/me/avatar", dep.UserHandler.DeleteAvatar)
 		})
 
 		r.Route("/admin", func(r chi.Router) {

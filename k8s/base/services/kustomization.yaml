@@ -5,3 +5,4 @@ resources:
   - api-service.yaml
   - postgres-service.yaml
   - redis-service.yaml
+  - minio-service.yaml
