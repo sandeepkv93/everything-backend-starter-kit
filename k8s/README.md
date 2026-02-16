@@ -4,7 +4,7 @@ This directory contains the complete Kubernetes deployment stack for the service
 
 ## What Is Here
 
-- Base app stack: API, Postgres, Redis, namespace, services, ingress, and core config.
+- Base app stack: API, Postgres, Redis, MinIO, namespace, services, ingress, and core config.
 - Environment overlays: `development`, `prod-like`, `staging`, `production`.
 - Optional observability stack: OTel Collector + Tempo + Loki + Mimir + Grafana.
 - Optional blue/green rollout overlay using Argo Rollouts.
@@ -16,7 +16,7 @@ This directory contains the complete Kubernetes deployment stack for the service
 
 ```text
 k8s/
-  base/                         # Core manifests (API + Postgres + Redis)
+  base/                         # Core manifests (API + Postgres + Redis + MinIO)
     configmaps/
     deployments/
     services/

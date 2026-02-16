@@ -124,6 +124,7 @@ Endpoints:
 
 - API base URL: `http://localhost:8080`
 - Grafana UI: `http://localhost:3000` (`admin` / `admin`)
+- MinIO Console: `http://localhost:9001` (`minioadmin` / `minioadmin`)
 
 ## Documentation
 
