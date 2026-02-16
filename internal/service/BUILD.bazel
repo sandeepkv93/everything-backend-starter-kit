@@ -64,6 +64,7 @@ go_test(
         "rbac_service_test.go",
         "redis_test_helpers_test.go",
         "session_service_test.go",
+        "storage_service_test.go",
         "token_service_test.go",
         "user_service_test.go",
     ],

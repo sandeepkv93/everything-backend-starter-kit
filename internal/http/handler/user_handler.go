@@ -178,6 +178,9 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce hard request body limit (6MB buffer for multipart overhead beyond 5MB file)
+	r.Body = http.MaxBytesReader(w, r.Body, 6<<20)
+
 	// Parse multipart form (limit 10MB in memory)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		observability.RecordUserProfileEvent(r.Context(), "avatar_upload_parse_error")
@@ -260,9 +263,13 @@ func (h *UserHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete from storage
-	if err := h.storageSvc.DeleteAvatar(r.Context(), req.ObjectKey); err != nil {
+	// Delete from storage (validates ownership)
+	if err := h.storageSvc.DeleteAvatar(r.Context(), userID, req.ObjectKey); err != nil {
 		observability.RecordUserProfileEvent(r.Context(), "avatar_delete_storage_error")
+		if errors.Is(err, service.ErrUnauthorizedAccess) {
+			response.Error(w, r, http.StatusForbidden, "FORBIDDEN", "you do not have permission to delete this avatar", nil)
+			return
+		}
 		response.Error(w, r, http.StatusInternalServerError, "INTERNAL", "failed to delete avatar", nil)
 		return
 	}

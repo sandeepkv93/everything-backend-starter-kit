@@ -80,7 +80,7 @@ func (s *stubStorageSvc) UploadAvatar(_ context.Context, _ uint, _ io.Reader, _ 
 	return "", errors.New("not implemented")
 }
 
-func (s *stubStorageSvc) DeleteAvatar(_ context.Context, _ string) error {
+func (s *stubStorageSvc) DeleteAvatar(_ context.Context, _ uint, _ string) error {
 	return errors.New("not implemented")
 }
 
