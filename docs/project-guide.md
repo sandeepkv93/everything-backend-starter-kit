@@ -81,6 +81,9 @@ Your command surface stays simple, for example:
 - `task test:redis-race`
 - `task test:audit`
 - `task security`
+- `task integration:reset-db`
+- `task integration:backup-db`
+- `task integration:restore-db FILE=backups/backup_<timestamp>.sql`
 
 ## Auth Lifecycle Integration Tests
 
@@ -141,6 +144,19 @@ Run only Redis race/replay integration tests (requires Docker):
 Run all tests:
 
 - `task test`
+
+## Local Postgres Snapshot Workflows
+
+Use these commands when your local DB state is corrupted or when you need to share/replay data snapshots.
+They rely on Docker Compose service `db` and its managed data volume.
+
+- Reset DB container + data volume and start fresh Postgres:
+  - `task integration:reset-db`
+- Backup DB to SQL file (default location: `backups/backup_<timestamp>.sql`):
+  - `task integration:backup-db`
+  - Optional custom output: `task integration:backup-db FILE=backups/my_snapshot.sql`
+- Restore DB from SQL file:
+  - `task integration:restore-db FILE=backups/backup_<timestamp>.sql`
 
 ## Quickstart
 
