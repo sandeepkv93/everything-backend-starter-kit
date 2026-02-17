@@ -1086,9 +1086,9 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [file]
+              required: [avatar]
               properties:
-                file:
+                avatar:
                   type: string
                   format: binary
                   description: Avatar image file (JPEG or PNG, max 5MB)
@@ -1180,11 +1180,16 @@ paths:
                     example: true
                   data:
                     type: object
-                    required: [message]
+                    required: [object_key, deleted]
                     properties:
-                      message:
+                      object_key:
                         type: string
-                        example: avatar deleted successfully
+                        description: The object key that was deleted
+                        example: avatars/user-123/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg
+                      deleted:
+                        type: boolean
+                        description: Deletion confirmation flag
+                        example: true
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
