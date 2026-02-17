@@ -113,6 +113,21 @@ task seed
 task run
 ```
 
+### Database reset/backup/restore (local)
+
+These commands operate on the Docker Compose-managed Postgres service (`db`) and its data volume.
+
+```bash
+# reset Postgres container + DB volume and start fresh db service
+task integration:reset-db
+
+# create SQL backup (default: backups/backup_<timestamp>.sql)
+task integration:backup-db
+
+# restore from backup file
+task integration:restore-db FILE=backups/backup_20260217_103000.sql
+```
+
 ### Expected success checks
 
 ```bash

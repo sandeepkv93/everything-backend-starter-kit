@@ -1,6 +1,64 @@
 version: '3'
 
 tasks:
+  integration:reset-db:
+    desc: Reset local Postgres container and data volume, then start a fresh db container
+    cmds:
+      - |
+        bash -ec '
+          docker compose stop db || true
+          docker compose rm -f -v db || true
+          docker compose up -d db
+          docker compose ps db
+        '
+
+  integration:backup-db:
+    desc: Create a SQL snapshot from local Postgres container into backups/backup_<timestamp>.sql
+    cmds:
+      - mkdir -p backups
+      - |
+        bash -ec '
+          out="{{.FILE}}"
+          if [ -z "$out" ] || [ "$out" = "<no value>" ]; then
+            out="backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+          fi
+          docker compose exec -T db pg_dump -U app -d app > "$out"
+          echo "database backup created: $out"
+        '
+
+  integration:restore-db:
+    desc: "Restore local Postgres container from SQL snapshot (usage: task integration:restore-db FILE=backups/backup_x.sql)"
+    cmds:
+      - |
+        bash -ec '
+          in="{{.FILE}}"
+          if [ -z "$in" ] || [ "$in" = "<no value>" ]; then
+            echo "FILE is required. Example: task integration:restore-db FILE=backups/backup_20260217_103000.sql"
+            exit 1
+          fi
+          if [ ! -f "$in" ]; then
+            echo "backup file not found: $in"
+            exit 1
+          fi
+          docker compose exec -T db psql -U app -d app < "$in"
+          echo "database restore completed from: $in"
+        '
+
+  reset-db:
+    desc: "Alias for integration:reset-db"
+    cmds:
+      - task integration:reset-db
+
+  backup-db:
+    desc: "Alias for integration:backup-db"
+    cmds:
+      - task integration:backup-db
+
+  restore-db:
+    desc: "Alias for integration:restore-db"
+    cmds:
+      - task integration:restore-db FILE={{.FILE}}
+
   run:
     cmds:
       - go run ./cmd/api
