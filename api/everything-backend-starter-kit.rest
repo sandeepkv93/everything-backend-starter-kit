@@ -102,21 +102,6 @@ X-CSRF-Token: {{csrfToken}}
 ### Auth: update CSRF token after refresh
 @csrfToken = {{refreshTokens.response.body.data.csrf_token}}
 
-### Auth: change password (CSRF + auth cookie)
-POST {{apiBase}}/auth/local/change-password
-Content-Type: {{json}}
-X-CSRF-Token: {{csrfToken}}
-
-{
-  "current_password": "{{localPassword}}",
-  "new_password": "{{newPassword}}"
-}
-
-### Auth: logout (CSRF + auth cookie)
-POST {{apiBase}}/auth/logout
-Content-Type: {{json}}
-X-CSRF-Token: {{csrfToken}}
-
 ### User: me profile
 GET {{apiBase}}/me
 
@@ -317,3 +302,18 @@ Content-Type: {{json}}
 
 ### Admin feature flag rules: delete (requires feature_flags:write)
 DELETE {{apiBase}}/admin/feature-flags/{{featureFlagId}}/rules/{{featureFlagRuleId}}
+
+### Auth: change password (run this near end; it clears auth cookies)
+POST {{apiBase}}/auth/local/change-password
+Content-Type: {{json}}
+X-CSRF-Token: {{csrfToken}}
+
+{
+  "current_password": "{{localPassword}}",
+  "new_password": "{{newPassword}}"
+}
+
+### Auth: logout (run this last; clears auth cookies)
+POST {{apiBase}}/auth/logout
+Content-Type: {{json}}
+X-CSRF-Token: {{csrfToken}}
