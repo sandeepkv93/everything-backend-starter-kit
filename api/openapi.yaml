@@ -576,6 +576,122 @@ components:
         meta:
           $ref: '#/components/schemas/Meta'
 
+    FeatureFlagRule:
+      type: object
+      required: [id, feature_flag_id, type, percentage, enabled, priority, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: uint64
+        feature_flag_id:
+          type: integer
+          format: uint64
+        type:
+          type: string
+          enum: [user, role, org, environment, percent]
+        match_value:
+          type: string
+          nullable: true
+        percentage:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FeatureFlag:
+      type: object
+      required: [id, key, enabled, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: uint64
+        key:
+          type: string
+          example: new_checkout
+        description:
+          type: string
+        enabled:
+          type: boolean
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureFlagRule'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FeatureFlagEvaluation:
+      type: object
+      required: [key, enabled, source]
+      properties:
+        key:
+          type: string
+        enabled:
+          type: boolean
+        source:
+          type: string
+          example: rule:role
+        description:
+          type: string
+
+    FeatureFlagCreateRequest:
+      type: object
+      required: [key, enabled]
+      properties:
+        key:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9_\-]{0,127}$'
+        description:
+          type: string
+        enabled:
+          type: boolean
+
+    FeatureFlagUpdateRequest:
+      type: object
+      required: [key, enabled]
+      properties:
+        key:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9_\-]{0,127}$'
+        description:
+          type: string
+        enabled:
+          type: boolean
+
+    FeatureFlagRuleUpsertRequest:
+      type: object
+      required: [type, enabled]
+      properties:
+        type:
+          type: string
+          enum: [user, role, org, environment, percent]
+        match_value:
+          type: string
+        percentage:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+
   responses:
     BadRequestError:
       description: Request payload/path/query is invalid.
@@ -1810,3 +1926,331 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /feature-flags:
+    get:
+      tags: [User]
+      summary: Evaluate all feature flags for current user context
+      operationId: evaluateFeatureFlags
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: query
+          name: org
+          schema: { type: string }
+        - in: query
+          name: environment
+          schema: { type: string }
+      responses:
+        '200':
+          description: Resolved feature flag values
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, meta]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FeatureFlagEvaluation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /feature-flags/{key}:
+    get:
+      tags: [User]
+      summary: Evaluate one feature flag key
+      operationId: evaluateFeatureFlagByKey
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: org
+          schema: { type: string }
+        - in: query
+          name: environment
+          schema: { type: string }
+      responses:
+        '200':
+          description: Resolved flag value
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, meta]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    $ref: '#/components/schemas/FeatureFlagEvaluation'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /admin/feature-flags:
+    get:
+      tags: [Admin]
+      summary: List feature flags
+      operationId: adminListFeatureFlags
+      security:
+        - accessTokenCookie: []
+      responses:
+        '200':
+          description: Feature flag collection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, meta]
+                properties:
+                  success: { type: boolean, enum: [true] }
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FeatureFlag'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [Admin]
+      summary: Create feature flag
+      operationId: adminCreateFeatureFlag
+      security:
+        - accessTokenCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureFlagCreateRequest'
+      responses:
+        '201':
+          description: Feature flag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/feature-flags/{id}:
+    get:
+      tags: [Admin]
+      summary: Get feature flag
+      operationId: adminGetFeatureFlag
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      responses:
+        '200':
+          description: Feature flag detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    patch:
+      tags: [Admin]
+      summary: Update feature flag
+      operationId: adminUpdateFeatureFlag
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureFlagUpdateRequest'
+      responses:
+        '200':
+          description: Feature flag updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Admin]
+      summary: Delete feature flag
+      operationId: adminDeleteFeatureFlag
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      responses:
+        '200':
+          description: Feature flag deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /admin/feature-flags/{id}/rules:
+    get:
+      tags: [Admin]
+      summary: List feature flag rules
+      operationId: adminListFeatureFlagRules
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      responses:
+        '200':
+          description: Feature flag rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [Admin]
+      summary: Create feature flag rule
+      operationId: adminCreateFeatureFlagRule
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureFlagRuleUpsertRequest'
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/feature-flags/{id}/rules/{rule_id}:
+    patch:
+      tags: [Admin]
+      summary: Update feature flag rule
+      operationId: adminUpdateFeatureFlagRule
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+        - in: path
+          name: rule_id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureFlagRuleUpsertRequest'
+      responses:
+        '200':
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Admin]
+      summary: Delete feature flag rule
+      operationId: adminDeleteFeatureFlagRule
+      security:
+        - accessTokenCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+        - in: path
+          name: rule_id
+          required: true
+          schema: { type: integer, format: uint64, minimum: 1 }
+      responses:
+        '200':
+          description: Rule deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'

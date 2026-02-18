@@ -20,6 +20,7 @@ type Dependencies struct {
 	AuthHandler                *handler.AuthHandler
 	UserHandler                *handler.UserHandler
 	AdminHandler               *handler.AdminHandler
+	FeatureFlagHandler         *handler.FeatureFlagHandler
 	JWTManager                 *security.JWTManager
 	RBACService                service.RBACAuthorizer
 	PermissionResolver         service.PermissionResolver
@@ -127,6 +128,8 @@ func NewRouter(dep Dependencies) http.Handler {
 		})
 
 		r.With(middleware.AuthMiddleware(dep.JWTManager)).Get("/me", dep.UserHandler.Me)
+		r.With(middleware.AuthMiddleware(dep.JWTManager)).Get("/feature-flags", dep.FeatureFlagHandler.EvaluateAll)
+		r.With(middleware.AuthMiddleware(dep.JWTManager)).Get("/feature-flags/{key}", dep.FeatureFlagHandler.EvaluateOne)
 		r.With(middleware.AuthMiddleware(dep.JWTManager)).Get("/me/sessions", dep.UserHandler.Sessions)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(dep.JWTManager))
@@ -165,6 +168,15 @@ func NewRouter(dep Dependencies) http.Handler {
 			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "permissions:write"), routePolicy(RoutePolicyAdminWrite, nil)).Patch("/permissions/{id}", dep.AdminHandler.UpdatePermission)
 			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "permissions:write"), routePolicy(RoutePolicyAdminWrite, nil)).Delete("/permissions/{id}", dep.AdminHandler.DeletePermission)
 			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "roles:write"), routePolicy(RoutePolicyAdminSync, routePolicy(RoutePolicyAdminWrite, nil))).Post("/rbac/sync", dep.AdminHandler.SyncRBAC)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:read")).Get("/feature-flags", dep.FeatureFlagHandler.ListFlags)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:read")).Get("/feature-flags/{id}", dep.FeatureFlagHandler.GetFlag)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Post("/feature-flags", dep.FeatureFlagHandler.CreateFlag)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Patch("/feature-flags/{id}", dep.FeatureFlagHandler.UpdateFlag)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Delete("/feature-flags/{id}", dep.FeatureFlagHandler.DeleteFlag)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:read")).Get("/feature-flags/{id}/rules", dep.FeatureFlagHandler.ListRules)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Post("/feature-flags/{id}/rules", dep.FeatureFlagHandler.CreateRule)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Patch("/feature-flags/{id}/rules/{rule_id}", dep.FeatureFlagHandler.UpdateRule)
+			r.With(middleware.RequirePermission(dep.RBACService, dep.PermissionResolver, "feature_flags:write"), routePolicy(RoutePolicyAdminWrite, nil)).Delete("/feature-flags/{id}/rules/{rule_id}", dep.FeatureFlagHandler.DeleteRule)
 		})
 	})
 

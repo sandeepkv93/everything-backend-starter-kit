@@ -46,6 +46,7 @@ var RepositorySet = wire.NewSet(
 	repository.NewUserRepository,
 	repository.NewRoleRepository,
 	repository.NewPermissionRepository,
+	repository.NewFeatureFlagRepository,
 	repository.NewSessionRepository,
 	repository.NewOAuthRepository,
 	repository.NewLocalCredentialRepository,
@@ -70,10 +71,13 @@ var ServiceSet = wire.NewSet(
 	wire.Bind(new(service.OAuthProvider), new(*service.GoogleOAuthProvider)),
 	service.NewOAuthService,
 	service.NewAuthService,
+	provideFeatureFlagEvaluationCacheStore,
+	service.NewFeatureFlagService,
 	wire.Bind(new(service.UserServiceInterface), new(*service.UserService)),
 	wire.Bind(new(service.SessionServiceInterface), new(*service.SessionService)),
 	wire.Bind(new(service.AuthServiceInterface), new(*service.AuthService)),
 	wire.Bind(new(service.RBACAuthorizer), new(*service.RBACService)),
+	wire.Bind(new(service.FeatureFlagService), new(*service.DefaultFeatureFlagService)),
 )
 
 var HTTPSet = wire.NewSet(
@@ -86,6 +90,7 @@ var HTTPSet = wire.NewSet(
 	provideAdminListCacheStore,
 	provideNegativeLookupCacheStore,
 	handler.NewAdminHandler,
+	handler.NewFeatureFlagHandler,
 	provideGlobalRateLimiter,
 	provideAuthRateLimiter,
 	provideForgotRateLimiter,
@@ -245,6 +250,13 @@ func provideNegativeLookupCacheStore(cfg *config.Config, redisClient redis.Unive
 		return service.NewNoopNegativeLookupCacheStore()
 	}
 	return service.NewRedisNegativeLookupCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, cfg.NegativeLookupCacheRedisPref))
+}
+
+func provideFeatureFlagEvaluationCacheStore(cfg *config.Config, redisClient redis.UniversalClient) service.FeatureFlagEvaluationCacheStore {
+	if redisClient == nil {
+		return service.NewInMemoryFeatureFlagEvaluationCacheStore()
+	}
+	return service.NewRedisFeatureFlagEvaluationCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, "feature_flag_eval_cache"))
 }
 
 func provideIdempotencyStore(cfg *config.Config, db *gorm.DB, redisClient redis.UniversalClient) service.IdempotencyStore {
@@ -523,6 +535,7 @@ func provideRouterDependencies(
 	authHandler *handler.AuthHandler,
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
+	featureFlagHandler *handler.FeatureFlagHandler,
 	jwt *security.JWTManager,
 	rbac service.RBACAuthorizer,
 	permissionResolver service.PermissionResolver,
@@ -538,6 +551,7 @@ func provideRouterDependencies(
 		AuthHandler:                authHandler,
 		UserHandler:                userHandler,
 		AdminHandler:               adminHandler,
+		FeatureFlagHandler:         featureFlagHandler,
 		JWTManager:                 jwt,
 		RBACService:                rbac,
 		PermissionResolver:         permissionResolver,

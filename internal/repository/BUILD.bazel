@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "repository",
     srcs = [
+        "feature_flag_repository.go",
         "local_credential_repository.go",
         "oauth_repository.go",
         "pagination.go",
