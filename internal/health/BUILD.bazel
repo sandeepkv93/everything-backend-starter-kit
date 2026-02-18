@@ -17,6 +17,10 @@ go_library(
 
 go_test(
     name = "health_test",
-    srcs = ["checker_test.go"],
+    srcs = [
+        "checker_test.go",
+        "mock_checker_test.go",
+    ],
     embed = [":health"],
+    deps = ["@org_uber_go_mock//gomock"],
 )

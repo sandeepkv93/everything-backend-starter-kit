@@ -42,9 +42,12 @@ go_test(
         "//internal/domain",
         "//internal/http/middleware",
         "//internal/repository",
+        "//internal/repository/gomock",
         "//internal/security",
         "//internal/service",
+        "//internal/service/gomock",
         "@com_github_go_chi_chi_v5//:chi",
         "@io_gorm_gorm//:gorm",
+        "@org_uber_go_mock//gomock",
     ],
 )
