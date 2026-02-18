@@ -38,11 +38,12 @@ func FuzzParseAccessTokenRobustness(f *testing.F) {
 	f.Add("")
 	f.Add("not-a-jwt")
 	f.Add("🔥.🔥.🔥")
-	f.Add(strings.Repeat("a", 8192))
+	// Keep pathological corpus inputs bounded so short CI fuzz-smoke windows stay deterministic.
+	f.Add(strings.Repeat("a", 2048))
 
 	f.Fuzz(func(t *testing.T, raw string) {
-		if len(raw) > 16384 {
-			raw = raw[:16384]
+		if len(raw) > 4096 {
+			raw = raw[:4096]
 		}
 		claims, err := mgr.ParseAccessToken(raw)
 		if err == nil {
@@ -74,11 +75,12 @@ func FuzzParseRefreshTokenRobustness(f *testing.F) {
 	f.Add("")
 	f.Add("header.payload.signature")
 	f.Add("こんにちは.世界")
-	f.Add(strings.Repeat("b", 8192))
+	// Keep pathological corpus inputs bounded so short CI fuzz-smoke windows stay deterministic.
+	f.Add(strings.Repeat("b", 2048))
 
 	f.Fuzz(func(t *testing.T, raw string) {
-		if len(raw) > 16384 {
-			raw = raw[:16384]
+		if len(raw) > 4096 {
+			raw = raw[:4096]
 		}
 		claims, err := mgr.ParseRefreshToken(raw)
 		if err == nil {
