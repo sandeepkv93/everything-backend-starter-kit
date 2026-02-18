@@ -25,6 +25,7 @@ func newRouterTestDeps() Dependencies {
 		AuthHandler:                nil,
 		UserHandler:                nil,
 		AdminHandler:               nil,
+		FeatureFlagHandler:         nil,
 		JWTManager:                 security.NewJWTManager("iss", "aud", "abcdefghijklmnopqrstuvwxyz123456", "abcdefghijklmnopqrstuvwxyz654321"),
 		RBACService:                service.NewRBACService(),
 		PermissionResolver:         nil,
@@ -142,7 +143,7 @@ func TestRouterRoutePolicyOverridesPerNamedPolicy(t *testing.T) {
 		RoutePolicyAdminSync:  policy(RoutePolicyAdminSync),
 	}
 	r := NewRouter(dep)
-	token := bearerToken(t, dep.JWTManager, []string{"users:write", "roles:write", "permissions:write"})
+	token := bearerToken(t, dep.JWTManager, []string{"users:write", "roles:write", "permissions:write", "feature_flags:write"})
 
 	rr := perform(r, http.MethodPost, "/api/v1/auth/local/login", nil, nil, `{"email":"u@example.com","password":"x"}`)
 	if rr.Code != http.StatusNoContent || rr.Header().Get("X-Policy") != RoutePolicyLogin {
@@ -164,7 +165,12 @@ func TestRouterRoutePolicyOverridesPerNamedPolicy(t *testing.T) {
 		t.Fatalf("admin_sync policy override not applied, status=%d policy=%q body=%s", rr.Code, rr.Header().Get("X-Policy"), rr.Body.String())
 	}
 
-	if policyHits[RoutePolicyLogin] != 1 || policyHits[RoutePolicyRefresh] != 1 || policyHits[RoutePolicyAdminWrite] != 1 || policyHits[RoutePolicyAdminSync] != 1 {
+	rr = perform(r, http.MethodPost, "/api/v1/admin/feature-flags", map[string]string{"Authorization": "Bearer " + token}, nil, `{"key":"flag_a","enabled":true}`)
+	if rr.Code != http.StatusNoContent || rr.Header().Get("X-Policy") != RoutePolicyAdminWrite {
+		t.Fatalf("feature flag admin_write policy override not applied, status=%d policy=%q body=%s", rr.Code, rr.Header().Get("X-Policy"), rr.Body.String())
+	}
+
+	if policyHits[RoutePolicyLogin] != 1 || policyHits[RoutePolicyRefresh] != 1 || policyHits[RoutePolicyAdminWrite] != 2 || policyHits[RoutePolicyAdminSync] != 1 {
 		t.Fatalf("expected one hit per policy override, got %+v", policyHits)
 	}
 }

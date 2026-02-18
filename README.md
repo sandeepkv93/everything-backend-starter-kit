@@ -153,6 +153,22 @@ pre-commit run --all-files
 
 Hook coverage includes Go formatting/linting (`gofmt`, `goimports`, `golangci-lint`, `go mod tidy`), Dockerfile linting (`hadolint`), YAML linting (`yamllint`), and secret scanning (`detect-secrets`).
 
+### Feature flags
+
+Runtime feature toggles support user evaluation and RBAC-gated admin management.
+
+- User evaluation endpoints:
+  - `GET /api/v1/feature-flags`
+  - `GET /api/v1/feature-flags/{key}`
+- Admin endpoints (require `feature_flags:read` / `feature_flags:write`):
+  - `GET|POST /api/v1/admin/feature-flags`
+  - `GET|PATCH|DELETE /api/v1/admin/feature-flags/{id}`
+  - `GET|POST /api/v1/admin/feature-flags/{id}/rules`
+  - `PATCH|DELETE /api/v1/admin/feature-flags/{id}/rules/{rule_id}`
+
+Rule matching precedence during evaluation:
+`user` > `role` > `org` > `environment` > `percent` > flag default.
+
 Endpoints:
 
 - API base URL: `http://localhost:8080`

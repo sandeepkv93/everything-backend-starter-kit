@@ -45,3 +45,17 @@ type SessionServiceInterface interface {
 	RevokeSession(userID, sessionID uint) (string, error)
 	RevokeOtherSessions(userID, currentSessionID uint) (int64, error)
 }
+
+type FeatureFlagService interface {
+	EvaluateAll(ctx context.Context, evalCtx FeatureFlagEvaluationContext) ([]FeatureFlagEvaluationResult, error)
+	EvaluateByKey(ctx context.Context, key string, evalCtx FeatureFlagEvaluationContext) (*FeatureFlagEvaluationResult, error)
+	ListFlags(ctx context.Context) ([]domain.FeatureFlag, error)
+	GetFlagByID(ctx context.Context, id uint) (*domain.FeatureFlag, error)
+	CreateFlag(ctx context.Context, flag *domain.FeatureFlag) error
+	UpdateFlag(ctx context.Context, flag *domain.FeatureFlag) error
+	DeleteFlag(ctx context.Context, id uint) error
+	ListRules(ctx context.Context, flagID uint) ([]domain.FeatureFlagRule, error)
+	CreateRule(ctx context.Context, rule *domain.FeatureFlagRule) error
+	UpdateRule(ctx context.Context, rule *domain.FeatureFlagRule) error
+	DeleteRule(ctx context.Context, flagID, ruleID uint) error
+}

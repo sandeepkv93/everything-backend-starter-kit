@@ -37,7 +37,7 @@ func TestProvideHTTPServer(t *testing.T) {
 
 func TestProvideRouterDependencies(t *testing.T) {
 	cfg := &config.Config{CORSAllowedOrigins: []string{"http://localhost:3000"}, AuthRateLimitPerMin: 10, APIRateLimitPerMin: 100, OTELMetricsEnabled: true}
-	dep := provideRouterDependencies(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, cfg)
+	dep := provideRouterDependencies(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, cfg)
 	if dep.AuthRateLimitRPM != 10 || dep.APIRateLimitRPM != 100 {
 		t.Fatalf("unexpected rate limits: %+v", dep)
 	}
@@ -563,6 +563,13 @@ func TestProvideRedisClientEnabledForAdminListCache(t *testing.T) {
 	client = provideRedisClient(cfg)
 	if client == nil {
 		t.Fatal("expected redis client when negative lookup cache is enabled")
+	}
+
+	cfg.NegativeLookupCacheEnabled = false
+	cfg.FeatureFlagEvalCacheRedis = true
+	client = provideRedisClient(cfg)
+	if client == nil {
+		t.Fatal("expected redis client when feature flag eval cache redis is enabled")
 	}
 }
 

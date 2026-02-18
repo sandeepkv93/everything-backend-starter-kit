@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "admin_handler.go",
         "auth_handler.go",
+        "feature_flag_handler.go",
         "user_handler.go",
     ],
     importpath = "github.com/sandeepkv93/everything-backend-starter-kit/internal/http/handler",
@@ -30,6 +31,7 @@ go_test(
     srcs = [
         "admin_handler_test.go",
         "auth_handler_test.go",
+        "feature_flag_handler_test.go",
         "user_handler_test.go",
     ],
     embed = [":handler"],

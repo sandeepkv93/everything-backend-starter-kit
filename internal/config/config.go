@@ -83,6 +83,7 @@ type Config struct {
 	RBACPermissionCacheEnabled   bool
 	RBACPermissionCacheTTL       time.Duration
 	RBACPermissionCacheRedisPref string
+	FeatureFlagEvalCacheRedis    bool
 	RateLimitRedisEnabled        bool
 	IdempotencyEnabled           bool
 	IdempotencyRedisEnabled      bool
@@ -207,6 +208,7 @@ func Load() (cfg *Config, err error) {
 		NegativeLookupCacheRedisPref:      getEnv("NEGATIVE_LOOKUP_CACHE_REDIS_PREFIX", "negative_lookup_cache"),
 		RBACPermissionCacheEnabled:        getEnvBool("RBAC_PERMISSION_CACHE_ENABLED", true),
 		RBACPermissionCacheRedisPref:      getEnv("RBAC_PERMISSION_CACHE_REDIS_PREFIX", "rbac_perm"),
+		FeatureFlagEvalCacheRedis:         getEnvBool("FEATURE_FLAG_EVAL_CACHE_REDIS_ENABLED", true),
 		RateLimitRedisEnabled:             getEnvBool("RATE_LIMIT_REDIS_ENABLED", true),
 		IdempotencyEnabled:                getEnvBool("IDEMPOTENCY_ENABLED", true),
 		IdempotencyRedisEnabled:           getEnvBool("IDEMPOTENCY_REDIS_ENABLED", true),
@@ -552,7 +554,8 @@ func (c *Config) Validate() error {
 		(c.IdempotencyEnabled && c.IdempotencyRedisEnabled) ||
 		c.AdminListCacheEnabled ||
 		c.NegativeLookupCacheEnabled ||
-		c.RBACPermissionCacheEnabled
+		c.RBACPermissionCacheEnabled ||
+		c.FeatureFlagEvalCacheRedis
 	if redisRequired && strings.TrimSpace(c.RedisAddr) == "" {
 		errs = append(errs, "REDIS_ADDR is required when Redis-backed features are enabled")
 	}

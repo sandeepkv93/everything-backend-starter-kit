@@ -59,6 +59,9 @@ type AppMetrics struct {
 	httpMiddlewareValidation     metric.Int64Counter
 	adminListCacheEntryAge       metric.Float64Histogram
 	adminNegativeLookupCounter   metric.Int64Counter
+	featureFlagEvalCounter       metric.Int64Counter
+	featureFlagEvalDuration      metric.Float64Histogram
+	featureFlagCacheCounter      metric.Int64Counter
 }
 
 var (
@@ -314,6 +317,22 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 	if err != nil {
 		return nil, err
 	}
+	featureFlagEvalCounter, err := meter.Int64Counter("feature_flag.evaluation.events")
+	if err != nil {
+		return nil, err
+	}
+	featureFlagEvalDuration, err := meter.Float64Histogram(
+		"feature_flag.evaluation.duration",
+		metric.WithUnit("s"),
+		metric.WithDescription("Duration of feature flag evaluation operations in seconds"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	featureFlagCacheCounter, err := meter.Int64Counter("feature_flag.evaluation.cache.events")
+	if err != nil {
+		return nil, err
+	}
 
 	metricsMu.Lock()
 	appMetrics = &AppMetrics{
@@ -357,6 +376,9 @@ func InitMetrics(ctx context.Context, cfg *config.Config, logger *slog.Logger) (
 		httpMiddlewareValidation:     httpMiddlewareValidation,
 		adminListCacheEntryAge:       adminListCacheEntryAge,
 		adminNegativeLookupCounter:   adminNegativeLookupCounter,
+		featureFlagEvalCounter:       featureFlagEvalCounter,
+		featureFlagEvalDuration:      featureFlagEvalDuration,
+		featureFlagCacheCounter:      featureFlagCacheCounter,
 	}
 	metricsMu.Unlock()
 
@@ -876,6 +898,35 @@ func RecordAdminNegativeLookupEffectiveness(ctx context.Context, outcome string)
 		return
 	}
 	m.adminNegativeLookupCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("outcome", outcome),
+	))
+}
+
+func RecordFeatureFlagEvaluation(ctx context.Context, mode, outcome string, duration time.Duration) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.featureFlagEvalCounter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("mode", mode),
+		attribute.String("outcome", outcome),
+	))
+	m.featureFlagEvalDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(
+		attribute.String("mode", mode),
+		attribute.String("outcome", outcome),
+	))
+}
+
+func RecordFeatureFlagEvaluationCache(ctx context.Context, outcome string) {
+	metricsMu.RLock()
+	m := appMetrics
+	metricsMu.RUnlock()
+	if m == nil {
+		return
+	}
+	m.featureFlagCacheCounter.Add(ctx, 1, metric.WithAttributes(
 		attribute.String("outcome", outcome),
 	))
 }

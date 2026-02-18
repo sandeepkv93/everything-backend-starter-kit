@@ -239,6 +239,7 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `NEGATIVE_LOOKUP_CACHE_TTL` (default `15s`)
 - `RBAC_PERMISSION_CACHE_ENABLED` (default `true`)
 - `RBAC_PERMISSION_CACHE_TTL` (default `5m`)
+- `FEATURE_FLAG_EVAL_CACHE_REDIS_ENABLED` (default `true`, uses Redis-backed feature flag evaluation cache + invalidation)
 - `REDIS_KEY_NAMESPACE` (default `v1`; prepended to Redis feature prefixes, e.g. `v1:rl:*`, `v1:idem:*`)
 - `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`, `AUTH_ABUSE_REDIS_PREFIX`
 - `REDIS_TLS_ENABLED` (default `false`)
@@ -335,6 +336,8 @@ Auth:
 User:
 
 - `GET /api/v1/me` (auth required)
+- `GET /api/v1/feature-flags` (auth required; supports `org,environment`)
+- `GET /api/v1/feature-flags/{key}` (auth required; supports `org,environment`)
 - `GET /api/v1/me/sessions` (auth required)
 - `DELETE /api/v1/me/sessions/{session_id}` (auth + CSRF required)
 - `POST /api/v1/me/sessions/revoke-others` (auth + CSRF required)
@@ -354,6 +357,15 @@ Admin (auth + permission checks):
 - `PATCH /api/v1/admin/permissions/{id}` (`permissions:write`)
 - `DELETE /api/v1/admin/permissions/{id}` (`permissions:write`)
 - `POST /api/v1/admin/rbac/sync` (`roles:write`)
+- `GET /api/v1/admin/feature-flags` (`feature_flags:read`)
+- `GET /api/v1/admin/feature-flags/{id}` (`feature_flags:read`)
+- `POST /api/v1/admin/feature-flags` (`feature_flags:write`)
+- `PATCH /api/v1/admin/feature-flags/{id}` (`feature_flags:write`)
+- `DELETE /api/v1/admin/feature-flags/{id}` (`feature_flags:write`)
+- `GET /api/v1/admin/feature-flags/{id}/rules` (`feature_flags:read`)
+- `POST /api/v1/admin/feature-flags/{id}/rules` (`feature_flags:write`)
+- `PATCH /api/v1/admin/feature-flags/{id}/rules/{rule_id}` (`feature_flags:write`)
+- `DELETE /api/v1/admin/feature-flags/{id}/rules/{rule_id}` (`feature_flags:write`)
 
 OpenAPI spec:
 
@@ -366,6 +378,7 @@ OpenAPI spec:
 - Request IDs are attached through middleware for log correlation.
 - RBAC is permission-based and enforced in route middleware.
 - RBAC permission checks use a short-lived user/session cache with invalidation on RBAC mutations.
+- Feature flag evaluations are cached per-user context (roles/org/environment) with invalidation on feature flag and rule mutations.
 - Auth and API endpoints use hybrid token-bucket + sliding-window rate limiters.
 - Redis outage behavior for rate limiting is configurable per scope (`api`, `auth`, `forgot`, `route_login`, `route_refresh`, `route_admin_write`, `route_admin_sync`) via `RATE_LIMIT_REDIS_OUTAGE_POLICY_*`.
 - Rate-limited responses include `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` response headers.
