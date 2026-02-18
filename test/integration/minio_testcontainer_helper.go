@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-const minioTestImage = "quay.io/minio/minio:RELEASE.2024-02-17T01-15-57Z"
+const defaultMinioTestImage = "docker.io/minio/minio:RELEASE.2024-02-17T01-15-57Z"
 
 type minioIntegrationEnv struct {
 	endpoint string
@@ -34,9 +35,14 @@ func newMinIOIntegrationEnv(t *testing.T) *minioIntegrationEnv {
 	t.Helper()
 
 	ctx := context.Background()
+	image := os.Getenv("MINIO_TEST_IMAGE")
+	if strings.TrimSpace(image) == "" {
+		image = defaultMinioTestImage
+	}
+
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image: minioTestImage,
+			Image: image,
 			Env: map[string]string{
 				"MINIO_ROOT_USER":     "minioadmin",
 				"MINIO_ROOT_PASSWORD": "minioadmin",
