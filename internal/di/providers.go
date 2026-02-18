@@ -157,7 +157,8 @@ func provideRedisClient(cfg *config.Config) redis.UniversalClient {
 		(!cfg.IdempotencyEnabled || !cfg.IdempotencyRedisEnabled) &&
 		!cfg.AdminListCacheEnabled &&
 		!cfg.NegativeLookupCacheEnabled &&
-		!cfg.RBACPermissionCacheEnabled {
+		!cfg.RBACPermissionCacheEnabled &&
+		!cfg.FeatureFlagEvalCacheRedis {
 		return nil
 	}
 	options := &redis.Options{
@@ -253,7 +254,7 @@ func provideNegativeLookupCacheStore(cfg *config.Config, redisClient redis.Unive
 }
 
 func provideFeatureFlagEvaluationCacheStore(cfg *config.Config, redisClient redis.UniversalClient) service.FeatureFlagEvaluationCacheStore {
-	if redisClient == nil {
+	if !cfg.FeatureFlagEvalCacheRedis || redisClient == nil {
 		return service.NewInMemoryFeatureFlagEvaluationCacheStore()
 	}
 	return service.NewRedisFeatureFlagEvaluationCacheStore(redisClient, composeRedisPrefix(cfg.RedisKeyNamespace, "feature_flag_eval_cache"))

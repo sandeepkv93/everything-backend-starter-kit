@@ -564,6 +564,13 @@ func TestProvideRedisClientEnabledForAdminListCache(t *testing.T) {
 	if client == nil {
 		t.Fatal("expected redis client when negative lookup cache is enabled")
 	}
+
+	cfg.NegativeLookupCacheEnabled = false
+	cfg.FeatureFlagEvalCacheRedis = true
+	client = provideRedisClient(cfg)
+	if client == nil {
+		t.Fatal("expected redis client when feature flag eval cache redis is enabled")
+	}
 }
 
 func TestProvideAuthAbuseGuard(t *testing.T) {

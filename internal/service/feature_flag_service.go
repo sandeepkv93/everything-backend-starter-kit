@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -256,7 +257,16 @@ func matchesRule(rule domain.FeatureFlagRule, ctx FeatureFlagEvaluationContext) 
 func stablePercentBucket(flagID, userID uint) int {
 	src := fmt.Sprintf("%d:%d", flagID, userID)
 	sum := sha256.Sum256([]byte(src))
-	return int(sum[0]) % 100
+	const bucketCount uint64 = 100
+	const maxUint64 = ^uint64(0)
+	limit := maxUint64 - (maxUint64 % bucketCount)
+	for i := 0; i+8 <= len(sum); i += 8 {
+		candidate := binary.BigEndian.Uint64(sum[i : i+8])
+		if candidate < limit {
+			return int(candidate % bucketCount)
+		}
+	}
+	return int(binary.BigEndian.Uint64(sum[:8]) % bucketCount)
 }
 
 func normalizeAndValidateRule(rule *domain.FeatureFlagRule) error {

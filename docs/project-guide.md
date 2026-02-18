@@ -239,6 +239,7 @@ Configuration is loaded and validated in `internal/config/config.go`.
 - `NEGATIVE_LOOKUP_CACHE_TTL` (default `15s`)
 - `RBAC_PERMISSION_CACHE_ENABLED` (default `true`)
 - `RBAC_PERMISSION_CACHE_TTL` (default `5m`)
+- `FEATURE_FLAG_EVAL_CACHE_REDIS_ENABLED` (default `true`, uses Redis-backed feature flag evaluation cache + invalidation)
 - `REDIS_KEY_NAMESPACE` (default `v1`; prepended to Redis feature prefixes, e.g. `v1:rl:*`, `v1:idem:*`)
 - `REDIS_ADDR`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_DB`, `RATE_LIMIT_REDIS_PREFIX`, `AUTH_ABUSE_REDIS_PREFIX`
 - `REDIS_TLS_ENABLED` (default `false`)

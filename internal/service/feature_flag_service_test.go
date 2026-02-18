@@ -183,3 +183,18 @@ func TestFeatureFlagServiceRuleValidation(t *testing.T) {
 		t.Fatalf("expected invalid rule type, got %v", err)
 	}
 }
+
+func TestStablePercentBucketDistribution(t *testing.T) {
+	const sampleSize = 10000
+	const pct = 50
+	enabled := 0
+	rule := domain.FeatureFlagRule{FeatureFlagID: 7, Type: FeatureFlagRuleTypePercent, Percentage: pct}
+	for userID := uint(1); userID <= sampleSize; userID++ {
+		if matchesRule(rule, FeatureFlagEvaluationContext{UserID: userID}) {
+			enabled++
+		}
+	}
+	if enabled < 4700 || enabled > 5300 {
+		t.Fatalf("expected ~50%% rollout distribution, got enabled=%d/%d", enabled, sampleSize)
+	}
+}
