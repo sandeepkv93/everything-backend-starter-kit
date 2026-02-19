@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -184,7 +185,13 @@ func FuzzErrorContentNegotiationAndEnvelope(f *testing.F) {
 			status += 100
 		}
 
-		req := httptest.NewRequest(http.MethodGet, path, nil)
+		// Avoid exercising URL parsing in this target; we only need header/path
+		// semantics for response formatting and content negotiation.
+		req := &http.Request{
+			Method: http.MethodGet,
+			Header: make(http.Header),
+			URL:    &url.URL{Path: path},
+		}
 		req.Header.Set("Accept", accept)
 		req.Header.Set("X-Request-Id", "fuzz-req")
 		rr := httptest.NewRecorder()
